@@ -11,11 +11,13 @@ import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.FilterVintage
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -29,6 +31,8 @@ val MainTools: List<EditorTool> = listOf(
     EditorTool.SPLIT,
     EditorTool.SPEED,
     EditorTool.VOLUME,
+    EditorTool.AUDIO,
+    EditorTool.MUTE,
     EditorTool.FILTERS,
     EditorTool.ADJUST,
     EditorTool.TEXT,
@@ -67,6 +71,8 @@ fun EditorTool.icon(): ImageVector = when (this) {
     EditorTool.DELETE -> Icons.Filled.Delete
     EditorTool.SPEED -> Icons.Filled.Speed
     EditorTool.VOLUME -> Icons.Filled.VolumeUp
+    EditorTool.MUTE -> Icons.Filled.VolumeOff
+    EditorTool.AUDIO -> Icons.Filled.LibraryMusic
     EditorTool.REVERSE -> Icons.Filled.FastRewind
     EditorTool.ROTATE -> Icons.Filled.RotateRight
     EditorTool.FILTERS -> Icons.Filled.FilterVintage

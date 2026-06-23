@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.actioncut.core.domain.editor.ClipFactory
 import com.actioncut.core.domain.editor.TimelineEditor
 import com.actioncut.core.domain.usecase.GetProjectUseCase
+import com.actioncut.core.domain.usecase.ResolveMediaUseCase
 import com.actioncut.core.domain.usecase.SaveProjectUseCase
 import com.actioncut.core.media.player.PlayerController
 import com.actioncut.core.model.ColorAdjustments
@@ -29,6 +30,7 @@ class EditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getProject: GetProjectUseCase,
     private val saveProject: SaveProjectUseCase,
+    private val resolveMedia: ResolveMediaUseCase,
     val playerController: PlayerController,
 ) : ViewModel() {
 
@@ -110,6 +112,8 @@ class EditorViewModel @Inject constructor(
             EditorTool.DELETE -> { deleteSelected(); clearTool() }
             EditorTool.REVERSE -> { toggleReverse(); clearTool() }
             EditorTool.ROTATE -> { rotateSelected(); clearTool() }
+            EditorTool.MUTE -> { toggleMuteSelected(); clearTool() }
+            EditorTool.AUDIO -> clearTool() // the screen launches the audio picker
             else -> _uiState.update { it.copy(activeTool = tool) }
         }
     }
@@ -166,6 +170,35 @@ class EditorViewModel @Inject constructor(
                 TimelineEditor.insertClip(withTrack, trackId, clip)
             }
         }
+    }
+
+    /**
+     * Adds a picked audio file (music / voiceover) as an audio clip at the playhead,
+     * creating an AUDIO lane if the project doesn't have one yet.
+     */
+    fun addAudioAtPlayhead(uri: String) {
+        viewModelScope.launch {
+            val media = resolveMedia(uri) ?: return@launch
+            val audioMedia = media.copy(type = com.actioncut.core.model.MediaType.AUDIO)
+            val clip = ClipFactory.fromMedia(audioMedia, _uiState.value.playheadMs)
+            val track = _uiState.value.timeline.tracks
+                .firstOrNull { it.type == com.actioncut.core.model.TrackType.AUDIO }
+            mutate(structural = true) { timeline ->
+                if (track != null) {
+                    TimelineEditor.insertClip(timeline, track.id, clip)
+                } else {
+                    val (withTrack, trackId) =
+                        TimelineEditor.addTrack(timeline, com.actioncut.core.model.TrackType.AUDIO)
+                    TimelineEditor.insertClip(withTrack, trackId, clip)
+                }
+            }
+        }
+    }
+
+    /** Toggles the selected clip's audio on/off (volume 0 = muted / audio removed on export). */
+    fun toggleMuteSelected() = withSelected { id ->
+        val muted = (currentClip(id)?.volume ?: 1f) == 0f
+        mutate(structural = false) { TimelineEditor.setVolume(it, id, if (muted) 1f else 0f) }
     }
 
     // ------------------------------------------------------------------ property edits

@@ -169,6 +169,13 @@ class TimelineEditorTest {
     }
 
     @Test
+    fun setVolume_zeroMutesClip() {
+        val timeline = timelineWith(videoClip("a", 0, 4000))
+        val result = TimelineEditor.setVolume(timeline, "a", 0f)
+        assertEquals(0f, result.track("t1")!!.clips.first().volume)
+    }
+
+    @Test
     fun findClip_returnsOwningTrackAndClip() {
         val timeline = timelineWith(videoClip("a", 0, 4000))
         val found = TimelineEditor.findClip(timeline, "a")

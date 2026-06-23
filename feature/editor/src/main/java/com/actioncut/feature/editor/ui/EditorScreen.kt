@@ -49,6 +49,21 @@ fun EditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val audioPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            viewModel.addAudioAtPlayhead(uri.toString())
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,7 +133,13 @@ fun EditorScreen(
             } else {
                 EditorToolbar(
                     activeTool = uiState.activeTool,
-                    onToolSelected = viewModel::setActiveTool,
+                    onToolSelected = { tool ->
+                        if (tool == EditorTool.AUDIO) {
+                            audioPicker.launch(arrayOf("audio/*"))
+                        } else {
+                            viewModel.setActiveTool(tool)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

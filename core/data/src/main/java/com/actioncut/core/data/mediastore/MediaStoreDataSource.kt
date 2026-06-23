@@ -138,6 +138,36 @@ class MediaStoreDataSource @Inject constructor(
 
     fun getByUri(uri: String): MediaItem? = query(MediaFilter.ALL).firstOrNull { it.uri == uri }
 
+    /**
+     * Probes an arbitrary content URI (e.g. SAF audio/video pick) for its duration, type
+     * and dimensions. Unlike [getByUri] this works for URIs that aren't in the MediaStore
+     * collections (document URIs from the system picker).
+     */
+    fun resolveMedia(uri: String): MediaItem? {
+        val retriever = android.media.MediaMetadataRetriever()
+        val item = runCatching {
+            retriever.setDataSource(context, android.net.Uri.parse(uri))
+            fun meta(key: Int) = retriever.extractMetadata(key)
+            val durationMs = meta(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            val hasVideo = meta(android.media.MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) == "yes"
+            val width = meta(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+            val height = meta(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+            val title = meta(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)
+                ?: uri.substringAfterLast('/').substringBefore('?')
+            MediaItem(
+                id = uri.hashCode().toString(),
+                uri = uri,
+                type = if (hasVideo) MediaType.VIDEO else MediaType.AUDIO,
+                displayName = title,
+                durationMs = durationMs,
+                width = width,
+                height = height,
+            )
+        }.getOrNull()
+        runCatching { retriever.release() }
+        return item
+    }
+
     @Suppress("unused")
     private val sdkInt = Build.VERSION.SDK_INT
 }

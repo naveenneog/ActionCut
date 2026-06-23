@@ -2,6 +2,8 @@ package com.actioncut.core.media.export
 
 import androidx.media3.common.Effect
 import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.ChannelMixingAudioProcessor
+import androidx.media3.common.audio.ChannelMixingMatrix
 import androidx.media3.common.audio.SonicAudioProcessor
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
@@ -83,12 +85,25 @@ object EffectMapper {
         return effects
     }
 
-    /** Per-clip audio processors — keeps audio in sync when a clip's speed changes. */
+    /**
+     * Per-clip audio processors. Keeps audio in sync when a clip's speed changes and
+     * applies per-clip volume/gain. A muted clip (volume == 0) is handled by the exporter
+     * via `EditedMediaItem.setRemoveAudio(true)` instead, so it's skipped here.
+     */
     fun audioProcessors(clip: Clip): List<AudioProcessor> {
+        val processors = mutableListOf<AudioProcessor>()
         if (clip.speed != 1f && (clip.type == ClipType.VIDEO || clip.type == ClipType.AUDIO)) {
-            return listOf(SonicAudioProcessor().apply { setSpeed(clip.speed) })
+            processors += SonicAudioProcessor().apply { setSpeed(clip.speed) }
         }
-        return emptyList()
+        val volume = clip.volume
+        if (volume != 1f && volume != 0f) {
+            processors += ChannelMixingAudioProcessor().apply {
+                // Cover both mono and stereo inputs; the processor picks by channel count.
+                putChannelMixingMatrix(ChannelMixingMatrix.create(1, 1).scaleBy(volume))
+                putChannelMixingMatrix(ChannelMixingMatrix.create(2, 2).scaleBy(volume))
+            }
+        }
+        return processors
     }
 
     private fun cropEffect(crop: CropRect): Crop {

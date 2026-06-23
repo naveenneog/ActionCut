@@ -22,4 +22,8 @@ class MediaRepositoryImpl @Inject constructor(
     override suspend fun getMedia(uri: String): MediaItem? = withContext(dispatchers.io) {
         dataSource.getByUri(uri)
     }
+
+    override suspend fun resolveMedia(uri: String): MediaItem? = withContext(dispatchers.io) {
+        dataSource.resolveMedia(uri)
+    }
 }

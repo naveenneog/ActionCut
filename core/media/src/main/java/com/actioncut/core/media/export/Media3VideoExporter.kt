@@ -69,8 +69,20 @@ class Media3VideoExporter @Inject constructor(
         handler.post {
             runCatching {
                 val editedItems = clips.map { clip -> clip.toEditedMediaItem(targetWidth, targetHeight, settings) }
-                val sequence = EditedMediaItemSequence(editedItems)
-                val composition = Composition.Builder(listOf(sequence)).build()
+                val videoSequence = EditedMediaItemSequence(editedItems)
+
+                // Mix the audio lane (background music / added audio) as a second sequence.
+                // Media3's compositor mixes audio from all sequences together.
+                val sequences = mutableListOf(videoSequence)
+                val audioClips = project.timeline.audioTracks
+                    .flatMap { it.clips }
+                    .filter { it.mediaUri != null && it.volume > 0f }
+                    .sortedBy { it.timelineStartMs }
+                if (audioClips.isNotEmpty()) {
+                    sequences += EditedMediaItemSequence(audioClips.map { it.toAudioEditedMediaItem() })
+                }
+
+                val composition = Composition.Builder(sequences).build()
 
                 val t = Transformer.Builder(context)
                     .setVideoMimeType(settings.format.mimeType)
@@ -146,11 +158,33 @@ class Media3VideoExporter @Inject constructor(
         val builder = EditedMediaItem.Builder(mediaItemBuilder.build())
             .setEffects(Effects(audioProcessors, videoEffects))
 
+        // Mute / "remove audio from this video": strip the clip's own audio track.
+        if (volume == 0f && type == ClipType.VIDEO) {
+            builder.setRemoveAudio(true)
+        }
+
         if (type == ClipType.IMAGE) {
             builder.setDurationUs(timelineDurationMs * 1_000)
             builder.setFrameRate(settings.frameRate.fps)
         }
         return builder.build()
+    }
+
+    /** Audio-only edited item for the background-audio sequence (music / voiceover). */
+    private fun Clip.toAudioEditedMediaItem(): EditedMediaItem {
+        val mediaItem = MediaItem.Builder()
+            .setUri(mediaUri)
+            .setClippingConfiguration(
+                MediaItem.ClippingConfiguration.Builder()
+                    .setStartPositionMs(sourceInMs)
+                    .setEndPositionMs(if (sourceOutMs > sourceInMs) sourceOutMs else C.TIME_END_OF_SOURCE)
+                    .build(),
+            )
+            .build()
+        return EditedMediaItem.Builder(mediaItem)
+            .setRemoveVideo(true)
+            .setEffects(Effects(EffectMapper.audioProcessors(this), emptyList()))
+            .build()
     }
 
     /** Computes even, codec-friendly output dimensions for the given aspect + resolution. */

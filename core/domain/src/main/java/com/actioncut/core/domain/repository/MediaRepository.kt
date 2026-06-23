@@ -27,4 +27,11 @@ interface MediaRepository {
     fun observeMedia(filter: MediaFilter = MediaFilter.ALL): Flow<List<MediaItem>>
 
     suspend fun getMedia(uri: String): MediaItem?
+
+    /**
+     * Resolves an arbitrary content URI (e.g. one returned by the system audio picker /
+     * Storage Access Framework) into a [MediaItem], probing its duration and type with
+     * [android.media.MediaMetadataRetriever]. Used when adding music in the editor.
+     */
+    suspend fun resolveMedia(uri: String): MediaItem?
 }

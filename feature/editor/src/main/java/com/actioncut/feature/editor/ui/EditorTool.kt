@@ -10,6 +10,8 @@ enum class EditorTool(val label: String, val opensPanel: Boolean) {
     TRIM("Trim", true),
     SPEED("Speed", true),
     VOLUME("Volume", true),
+    MUTE("Mute", false),
+    AUDIO("Audio", false),
     REVERSE("Reverse", false),
     ROTATE("Rotate", false),
     FILTERS("Filters", true),

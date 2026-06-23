@@ -13,6 +13,31 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Audio — add music, mute / remove audio, and real export mixing
+
+**Added: in-editor "Audio" tool.** Launches the system audio picker (SAF), takes a
+persistable URI permission, resolves the file's duration/type via
+`MediaMetadataRetriever` (`ResolveMediaUseCase` → `MediaRepository.resolveMedia`), and
+inserts it as an audio clip on a dedicated AUDIO lane at the playhead.
+
+**Added: "Mute" tool.** Toggles the selected clip's audio (volume 0 ⇄ 1) — the way to
+remove the original audio from an existing video.
+
+**Fixed: export now actually renders audio.** Previously the Media3 path ignored the
+audio lane and per-clip volume. Now:
+- the **audio lane is mixed in** as a second `EditedMediaItemSequence` (audio-only items
+  via `setRemoveVideo(true)`), so added music/voiceover lands in the output;
+- **mute** maps to `EditedMediaItem.setRemoveAudio(true)` (strips the clip's own audio);
+- **per-clip volume** maps to a `ChannelMixingAudioProcessor` (mono+stereo matrices
+  scaled by the volume), combined with the existing `SonicAudioProcessor` speed sync.
+
+(API signatures — `setRemoveAudio`, `ChannelMixingMatrix.create(in,out).scaleBy()` —
+verified via `javap` against media3 1.4.1 before coding.)
+
+**Note:** the preview player still plays the main video lane's audio as-is; mute/volume
+are authoritative at export (documented preview limitation).
+
+
 ### v1.0.0 follow-up — Render path, platform presets, release
 
 **Added: real LUT/effects export render path.** `EffectMapper` translates each clip's
