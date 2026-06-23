@@ -1,0 +1,112 @@
+package com.actioncut.core.media.export
+
+import androidx.media3.common.Effect
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.SonicAudioProcessor
+import androidx.media3.effect.Brightness
+import androidx.media3.effect.Contrast
+import androidx.media3.effect.Crop
+import androidx.media3.effect.GaussianBlur
+import androidx.media3.effect.HslAdjustment
+import androidx.media3.effect.Presentation
+import androidx.media3.effect.RgbAdjustment
+import androidx.media3.effect.ScaleAndRotateTransformation
+import androidx.media3.effect.SingleColorLut
+import androidx.media3.effect.SpeedChangeEffect
+import com.actioncut.core.model.Clip
+import com.actioncut.core.model.ClipType
+import com.actioncut.core.model.CropRect
+import com.actioncut.core.model.VisualEffect
+import com.actioncut.core.model.VisualEffectType
+
+/**
+ * Translates a [Clip]'s editing properties into a Media3 GPU [Effect] chain (and audio
+ * processors) applied at export. This is the bridge between the editor's data model and
+ * the hardware-accelerated render pipeline.
+ *
+ * Effect order is deliberate: geometry (rotate → crop) → colour (brightness → contrast →
+ * saturation → warmth → LUT) → stylistic (blur) → speed → output [Presentation] last so
+ * every clip is normalized to the same export dimensions for concatenation.
+ */
+object EffectMapper {
+
+    fun videoEffects(clip: Clip, targetWidth: Int, targetHeight: Int): List<Effect> {
+        val effects = mutableListOf<Effect>()
+
+        // --- Geometry ---
+        val rotation = clip.rotationDegrees + clip.transform.rotationDegrees
+        if (rotation % 360f != 0f) {
+            effects += ScaleAndRotateTransformation.Builder()
+                .setRotationDegrees(rotation)
+                .build()
+        }
+        clip.crop?.takeUnless { it.isFull }?.let { effects += cropEffect(it) }
+
+        // --- Colour adjustments ---
+        val adj = clip.adjustments
+        if (adj.brightness != 0f) effects += Brightness(adj.brightness.coerceIn(-1f, 1f))
+        if (adj.contrast != 0f) effects += Contrast(adj.contrast.coerceIn(-1f, 1f))
+        if (adj.saturation != 0f) {
+            effects += HslAdjustment.Builder()
+                .adjustSaturation((adj.saturation * 100f).coerceIn(-100f, 100f))
+                .build()
+        }
+        if (adj.warmth != 0f) {
+            val w = adj.warmth.coerceIn(-1f, 1f)
+            effects += RgbAdjustment.Builder()
+                .setRedScale(1f + w * 0.3f)
+                .setBlueScale(1f - w * 0.3f)
+                .build()
+        }
+
+        // --- Filter (real 3D LUT) ---
+        clip.filter?.let { filter ->
+            FilterLuts.cubeFor(filter.id, filter.intensity)?.let { cube ->
+                effects += SingleColorLut.createFromCube(cube)
+            }
+        }
+
+        // --- Stylistic visual effects ---
+        clip.effects.forEach { ve -> visualEffect(ve)?.let { effects += it } }
+
+        // --- Speed (video) ---
+        if (clip.speed != 1f && clip.type == ClipType.VIDEO) {
+            effects += SpeedChangeEffect(clip.speed)
+        }
+
+        // --- Output scaling (always last) ---
+        effects += Presentation.createForWidthAndHeight(
+            targetWidth,
+            targetHeight,
+            Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
+        )
+        return effects
+    }
+
+    /** Per-clip audio processors — keeps audio in sync when a clip's speed changes. */
+    fun audioProcessors(clip: Clip): List<AudioProcessor> {
+        if (clip.speed != 1f && (clip.type == ClipType.VIDEO || clip.type == ClipType.AUDIO)) {
+            return listOf(SonicAudioProcessor().apply { setSpeed(clip.speed) })
+        }
+        return emptyList()
+    }
+
+    private fun cropEffect(crop: CropRect): Crop {
+        // Normalized crop (0..1, origin top-left) -> Media3 NDC (-1..1, origin centre, y-up).
+        val left = crop.left * 2f - 1f
+        val right = crop.right * 2f - 1f
+        val top = 1f - crop.top * 2f
+        val bottom = 1f - crop.bottom * 2f
+        return Crop(left, right, bottom, top)
+    }
+
+    private fun visualEffect(effect: VisualEffect): Effect? = when (effect.type) {
+        VisualEffectType.GAUSSIAN_BLUR,
+        VisualEffectType.BOKEH,
+        -> GaussianBlur(1f + effect.intensity * 8f)
+        VisualEffectType.RADIAL_BLUR -> GaussianBlur(1f + effect.intensity * 6f)
+        // Stylized/retro looks (glitch, VHS, grain, pixelate, …) have no stock Media3
+        // effect; they're skipped at export until custom GL shaders are added.
+        else -> null
+    }
+}

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.actioncut.core.domain.usecase.GetProjectUseCase
+import com.actioncut.core.model.ExportPreset
 import com.actioncut.core.model.ExportState
 import com.actioncut.core.model.FrameRate
 import com.actioncut.core.model.Resolution
@@ -47,7 +48,12 @@ class ExportViewModel @Inject constructor(
     }
 
     fun setResolution(resolution: Resolution) =
-        _uiState.update { it.copy(settings = it.settings.copy(resolution = resolution)) }
+        _uiState.update {
+            it.copy(settings = it.settings.copy(resolution = resolution), selectedPreset = null)
+        }
+
+    fun setPreset(preset: ExportPreset) =
+        _uiState.update { it.copy(selectedPreset = preset, settings = preset.applyTo(it.settings)) }
 
     fun setFrameRate(frameRate: FrameRate) =
         _uiState.update { it.copy(settings = it.settings.copy(frameRate = frameRate)) }

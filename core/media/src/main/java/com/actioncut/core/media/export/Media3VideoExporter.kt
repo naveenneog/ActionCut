@@ -4,9 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.C
-import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
-import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -60,7 +58,10 @@ class Media3VideoExporter @Inject constructor(
             return@callbackFlow
         }
 
-        val (targetWidth, targetHeight) = targetDimensions(project.aspectRatio, settings.resolution)
+        // Preset support: an explicit aspect override (Instagram/TikTok/…) wins over the
+        // project's own aspect, letting one project export to many platform shapes.
+        val aspect = settings.aspectRatio ?: project.aspectRatio
+        val (targetWidth, targetHeight) = targetDimensions(aspect, settings.resolution)
         val handler = Handler(Looper.getMainLooper())
         var transformer: Transformer? = null
         var progressRunnable: Runnable? = null
@@ -139,18 +140,11 @@ class Media3VideoExporter @Inject constructor(
             )
         }
 
-        val videoEffects = buildList<Effect> {
-            add(
-                Presentation.createForWidthAndHeight(
-                    targetWidth,
-                    targetHeight,
-                    Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
-                ),
-            )
-        }
+        val videoEffects = EffectMapper.videoEffects(this, targetWidth, targetHeight)
+        val audioProcessors = EffectMapper.audioProcessors(this)
 
         val builder = EditedMediaItem.Builder(mediaItemBuilder.build())
-            .setEffects(Effects(emptyList(), videoEffects))
+            .setEffects(Effects(audioProcessors, videoEffects))
 
         if (type == ClipType.IMAGE) {
             builder.setDurationUs(timelineDurationMs * 1_000)

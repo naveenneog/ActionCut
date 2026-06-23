@@ -13,6 +13,31 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### v1.0.0 follow-up — Render path, platform presets, release
+
+**Added: real LUT/effects export render path.** `EffectMapper` translates each clip's
+editing properties into a Media3 GPU `Effect` chain — rotate (`ScaleAndRotateTransformation`),
+crop (`Crop`), brightness/contrast/saturation/warmth (`Brightness`/`Contrast`/
+`HslAdjustment`/`RgbAdjustment`), blur (`GaussianBlur`), per-clip speed (`SpeedChangeEffect`
++ `SonicAudioProcessor` to keep audio in sync), and `Presentation` scaling last.
+`FilterLuts` generates real 17³ 3D colour cubes per named filter and feeds them to
+`SingleColorLut.createFromCube` — the actual LUT render path, no `.cube` assets required.
+(Exact Media3 1.4.1 signatures were verified via `javap` before coding.)
+
+**Added: platform export presets.** `ExportPreset` (Instagram Reel/Post/4:5, TikTok,
+YouTube, YouTube 4K, Shorts, Mobile HD, Original) pins output aspect + resolution.
+`ExportSettings.aspectRatio` override lets one project export to any platform shape; the
+exporter crops-to-fit via `Presentation`. Wired through the worker and export UI.
+
+**Added: polished adaptive launcher icon** — violet→mint gradient play mark with a "cut"
+split, gradient background, and a monochrome layer for Android 13+ themed icons.
+
+**Added: GitHub Pages landing page** (`docs/index.html`) — branded, responsive, dark-first.
+
+**Decision: release signed with the debug key** so the v1.0.0 APK installs directly
+(demo release; swap for an upload keystore for Play distribution).
+
+
 ### Phase 1 — Core App Structure
 
 **Decision: Multi-module Clean Architecture.**

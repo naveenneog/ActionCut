@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ActionCut — Blazing-fast mobile video editor</title>
+<meta name="description" content="ActionCut is a modern, CapCut-inspired Android video editor: multi-track timeline, real LUT filters, GPU effects, and one-tap export presets for Instagram, TikTok, YouTube and more." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 108 108'%3E%3Crect width='108' height='108' rx='24' fill='%230b0b14'/%3E%3Cpath d='M44 37 L44 71 Q44 74 47 72 L75 56 Q78 54 75 52 L47 36 Q44 34 44 37 Z' fill='%237C5CFF'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --violet:#7C5CFF; --violet-dim:#5B45CC; --mint:#00E5C0; --pink:#FF5C8A;
+    --ink900:#0A0A0B; --ink800:#141417; --ink700:#1E1E22; --ink600:#2A2A30;
+    --text:#E6E6EC; --muted:#8A8A99; --radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--ink900); color:var(--text); line-height:1.6;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .gradient-text{background:linear-gradient(120deg,var(--violet),var(--mint));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .glow{position:fixed;inset:0;z-index:-1;overflow:hidden}
+  .glow::before,.glow::after{content:'';position:absolute;width:60vw;height:60vw;border-radius:50%;filter:blur(120px);opacity:.25}
+  .glow::before{background:var(--violet);top:-20vw;left:-10vw}
+  .glow::after{background:var(--mint);bottom:-25vw;right:-10vw;opacity:.18}
+
+  nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:rgba(10,10,11,.6);border-bottom:1px solid var(--ink600)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+  .brand svg{width:32px;height:32px;border-radius:9px}
+  .nav-links{display:flex;gap:22px;align-items:center;font-size:14px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;font-weight:600;font-size:14px;transition:transform .15s ease,box-shadow .15s ease;border:1px solid transparent;cursor:pointer}
+  .btn-primary{background:linear-gradient(120deg,var(--violet),var(--violet-dim));color:#fff;box-shadow:0 8px 24px -8px var(--violet)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px -8px var(--violet)}
+  .btn-ghost{border-color:var(--ink600);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--violet);background:rgba(124,92,255,.08)}
+
+  header{padding:90px 0 70px;text-align:center}
+  .app-icon{width:108px;height:108px;border-radius:26px;margin:0 auto 28px;display:block;box-shadow:0 20px 60px -15px rgba(124,92,255,.6)}
+  .pill{display:inline-block;font-size:13px;color:var(--mint);border:1px solid var(--ink600);border-radius:999px;padding:5px 14px;margin-bottom:22px;background:rgba(0,229,192,.05)}
+  h1{font-size:clamp(40px,7vw,72px);line-height:1.05;letter-spacing:-2px;font-weight:800}
+  .sub{max-width:620px;margin:22px auto 34px;font-size:clamp(16px,2.5vw,20px);color:var(--muted)}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+  .stats{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:54px}
+  .stat{background:var(--ink800);border:1px solid var(--ink600);border-radius:14px;padding:18px 26px;min-width:130px}
+  .stat b{display:block;font-size:28px;font-weight:800}
+  .stat span{font-size:13px;color:var(--muted)}
+
+  section{padding:70px 0}
+  .eyebrow{color:var(--mint);font-weight:600;font-size:13px;letter-spacing:1.5px;text-transform:uppercase}
+  h2{font-size:clamp(28px,4vw,40px);letter-spacing:-1px;margin:10px 0 8px;font-weight:800}
+  .lead{color:var(--muted);max-width:640px;margin-bottom:40px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+  .card{background:linear-gradient(180deg,var(--ink800),var(--ink900));border:1px solid var(--ink600);border-radius:var(--radius);padding:26px;transition:transform .2s ease,border-color .2s ease}
+  .card:hover{transform:translateY(-4px);border-color:var(--violet)}
+  .card .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;margin-bottom:16px;background:rgba(124,92,255,.12)}
+  .card h3{font-size:18px;margin-bottom:6px}
+  .card p{font-size:14.5px;color:var(--muted)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+  .chip{display:flex;flex-direction:column;gap:2px;border:1px solid var(--ink600);border-radius:14px;padding:14px 18px;background:var(--ink800);transition:border-color .2s,transform .2s}
+  .chip:hover{border-color:var(--mint);transform:translateY(-3px)}
+  .chip b{font-size:15px}
+  .chip .ar{font-size:11px;color:var(--mint);font-weight:600}
+
+  .arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:10px}
+  .layer{border:1px solid var(--ink600);border-radius:14px;padding:18px;background:var(--ink800)}
+  .layer h4{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--mint);margin-bottom:10px}
+  .layer code{display:block;font-size:13px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--ink700)}
+  .layer code:last-child{border:0}
+
+  .tech{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .tag{font-size:13px;border:1px solid var(--ink600);border-radius:999px;padding:7px 15px;color:var(--muted)}
+
+  footer{border-top:1px solid var(--ink600);padding:40px 0;text-align:center;color:var(--muted);font-size:14px}
+  footer a{color:var(--violet)}
+
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(max-width:640px){.nav-links a:not(.btn){display:none}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+
+<nav><div class="wrap">
+  <a class="brand" href="#top">
+    <svg viewBox="0 0 108 108"><rect width="108" height="108" rx="24" fill="#0b0b14"/><defs><linearGradient id="g" x1="40" y1="36" x2="78" y2="72" gradientUnits="userSpaceOnUse"><stop stop-color="#7C5CFF"/><stop offset="1" stop-color="#00E5C0"/></linearGradient></defs><path d="M44 37 L44 71 Q44 74 47 72 L75 56 Q78 54 75 52 L47 36 Q44 34 44 37 Z" fill="url(#g)"/><rect x="55.5" y="43" width="3.5" height="22" fill="#0b0b14"/></svg>
+    ActionCut
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#export">Export</a>
+    <a href="#architecture">Architecture</a>
+    <a class="btn btn-ghost" href="https://github.com/naveenneog/ActionCut">GitHub</a>
+  </div>
+</div></nav>
+
+<header id="top"><div class="wrap">
+  <svg class="app-icon" viewBox="0 0 108 108"><rect width="108" height="108" rx="26" fill="#0b0b14"/><defs><linearGradient id="g2" x1="40" y1="36" x2="78" y2="72" gradientUnits="userSpaceOnUse"><stop stop-color="#7C5CFF"/><stop offset="1" stop-color="#00E5C0"/></linearGradient></defs><path d="M44 37 L44 71 Q44 74 47 72 L75 56 Q78 54 75 52 L47 36 Q44 34 44 37 Z" fill="url(#g2)"/><rect x="55.5" y="43" width="3.5" height="22" fill="#0b0b14"/></svg>
+  <div class="pill">⚡ Built with Kotlin · Jetpack Compose · Media3</div>
+  <h1>Edit like a pro,<br><span class="gradient-text">export anywhere</span></h1>
+  <p class="sub">A blazing-fast, CapCut-inspired Android video editor. Multi-track timeline, real LUT filters, GPU effects, and one-tap export presets for every platform.</p>
+  <div class="cta">
+    <a class="btn btn-primary" href="https://github.com/naveenneog/ActionCut/releases/latest">⬇ Download APK</a>
+    <a class="btn btn-ghost" href="https://github.com/naveenneog/ActionCut">★ Star on GitHub</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>9</b><span>phases shipped</span></div>
+    <div class="stat"><b>10</b><span>Gradle modules</span></div>
+    <div class="stat"><b>4K</b><span>export ready</span></div>
+    <div class="stat"><b>100%</b><span>Compose UI</span></div>
+  </div>
+</div></header>
+
+<section id="features"><div class="wrap reveal">
+  <div class="eyebrow">Features</div>
+  <h2>Everything a creator needs</h2>
+  <p class="lead">From frame-accurate trimming to cinematic colour grading — all on-device, all in real time.</p>
+  <div class="grid">
+    <div class="card"><div class="ic">🎞️</div><h3>Multi-track timeline</h3><p>Fixed center-playhead scrubbing, video/audio/text/overlay lanes, drag-to-trim, split, ripple delete, zoom and 50-step undo/redo.</p></div>
+    <div class="card"><div class="ic">🎨</div><h3>Real LUT filters</h3><p>Nine procedurally-generated 3D colour LUTs (teal &amp; orange, noir, vintage, vivid…) rendered on the GPU at export.</p></div>
+    <div class="card"><div class="ic">✨</div><h3>GPU effects &amp; grade</h3><p>Brightness, contrast, saturation, warmth, blur, rotate, crop and speed — mapped to Media3's hardware effect pipeline.</p></div>
+    <div class="card"><div class="ic">🚀</div><h3>Background export</h3><p>WorkManager-driven Media3 Transformer renders up to 4K with live progress, then shares straight to any app.</p></div>
+    <div class="card"><div class="ic">🔤</div><h3>Text &amp; transitions</h3><p>Animated captions, fades, slides and zooms between clips with a clean, tappable tool panel.</p></div>
+    <div class="card"><div class="ic">🌙</div><h3>Dark-first design</h3><p>A modern Material 3 design system with haptics, smooth motion and an electric violet/mint palette.</p></div>
+  </div>
+</div></section>
+
+<section id="export"><div class="wrap reveal">
+  <div class="eyebrow">Export presets</div>
+  <h2>One tap. Every platform.</h2>
+  <p class="lead">Export the same project to the exact shape and resolution each platform wants — no manual cropping.</p>
+  <div class="chips">
+    <div class="chip"><b>Instagram Reel</b><span class="ar">9:16 · 1080p</span></div>
+    <div class="chip"><b>Instagram Post</b><span class="ar">1:1 · 1080p</span></div>
+    <div class="chip"><b>Instagram 4:5</b><span class="ar">4:5 · 1080p</span></div>
+    <div class="chip"><b>TikTok</b><span class="ar">9:16 · 1080p</span></div>
+    <div class="chip"><b>YouTube</b><span class="ar">16:9 · 1080p</span></div>
+    <div class="chip"><b>YouTube 4K</b><span class="ar">16:9 · 2160p</span></div>
+    <div class="chip"><b>YT Shorts</b><span class="ar">9:16 · 1080p</span></div>
+    <div class="chip"><b>Mobile HD</b><span class="ar">16:9 · 720p</span></div>
+  </div>
+</div></section>
+
+<section id="architecture"><div class="wrap reveal">
+  <div class="eyebrow">Architecture</div>
+  <h2>Clean, modular, testable</h2>
+  <p class="lead">MVVM + Clean Architecture across 10 Gradle modules, with a pure-Kotlin editing engine that's fully unit-tested.</p>
+  <div class="arch">
+    <div class="layer"><h4>App</h4><code>Hilt · Navigation</code><code>Home · NavHost</code></div>
+    <div class="layer"><h4>Features</h4><code>feature:media</code><code>feature:editor</code><code>feature:export</code></div>
+    <div class="layer"><h4>Core</h4><code>model · domain</code><code>data (Room)</code><code>media (Media3)</code><code>designsystem</code></div>
+  </div>
+  <div class="tech" style="margin-top:28px">
+    <span class="tag">Kotlin 2.0</span><span class="tag">Jetpack Compose</span><span class="tag">Material 3</span>
+    <span class="tag">Hilt</span><span class="tag">Room</span><span class="tag">Media3 Transformer</span>
+    <span class="tag">ExoPlayer</span><span class="tag">WorkManager</span><span class="tag">Coil</span><span class="tag">kotlinx.serialization</span>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <p>ActionCut · open-source Android video editor · <a href="https://github.com/naveenneog/ActionCut">github.com/naveenneog/ActionCut</a></p>
+  <p style="margin-top:8px;font-size:12.5px">Built with Kotlin &amp; Jetpack Compose. The default export engine is Media3 Transformer; a pluggable FFmpeg adapter is included.</p>
+</div></footer>
+
+<script>
+  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

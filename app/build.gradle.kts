@@ -25,6 +25,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Sign release builds with the debug key so the v1.0.0 APK installs directly
+            // (demo release — replace with a real upload keystore for Play distribution).
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

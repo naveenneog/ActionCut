@@ -1,14 +1,23 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Play triangle (brand violet) centered within the adaptive icon safe zone -->
+    <!-- Play triangle with a violet -> mint gradient -->
+    <path android:pathData="M44,37 L44,71 Q44,74 47,72 L75,56 Q78,54 75,52 L47,36 Q44,34 44,37 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="40" android:startY="36"
+                android:endX="78" android:endY="72"
+                android:startColor="#FF7C5CFF"
+                android:endColor="#FF00E5C0" />
+        </aapt:attr>
+    </path>
+    <!-- "Cut" split through the play mark (nods to the app's core: split/trim) -->
     <path
-        android:fillColor="#FF7C5CFF"
-        android:pathData="M44,38 L44,70 Q44,73 47,71 L74,56 Q77,54 74,52 L47,37 Q44,35 44,38 Z" />
-    <!-- Mint accent dot -->
-    <path
-        android:fillColor="#FF00E5C0"
-        android:pathData="M68,40 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        android:fillColor="#FF0B0B14"
+        android:pathData="M55.5,43 L59,43 L59,65 L55.5,65 Z" />
 </vector>
+

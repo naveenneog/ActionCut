@@ -47,6 +47,8 @@ data class ExportSettings(
     val frameRate: FrameRate = FrameRate.DEFAULT,
     val format: VideoFormat = VideoFormat.MP4_H264,
     val bitrateBps: Int? = null,
+    /** Optional aspect override (from an [ExportPreset]); null = use the project's aspect. */
+    val aspectRatio: AspectRatio? = null,
 ) {
     /** Heuristic target bitrate when one is not explicitly provided. */
     fun effectiveBitrate(): Int = bitrateBps ?: run {
@@ -54,6 +56,31 @@ data class ExportSettings(
         // ~0.1 bits per pixel per frame, a reasonable default for H.264.
         (pixels * frameRate.fps * 0.1).toInt().coerceAtLeast(2_000_000)
     }
+}
+
+/**
+ * One-tap export targets sized for popular platforms. A preset pins the output aspect
+ * ratio and resolution; [ExportPreset.ORIGINAL] keeps the project's own aspect.
+ */
+@Serializable
+enum class ExportPreset(
+    val displayName: String,
+    val platform: String,
+    val aspectRatio: AspectRatio?,
+    val resolution: Resolution,
+) {
+    ORIGINAL("Original", "Project", null, Resolution.P1080),
+    INSTAGRAM_REEL("Instagram Reel", "Instagram", AspectRatio.RATIO_9_16, Resolution.P1080),
+    INSTAGRAM_POST("Instagram Post", "Instagram", AspectRatio.RATIO_1_1, Resolution.P1080),
+    INSTAGRAM_PORTRAIT("Instagram 4:5", "Instagram", AspectRatio.RATIO_4_5, Resolution.P1080),
+    TIKTOK("TikTok", "TikTok", AspectRatio.RATIO_9_16, Resolution.P1080),
+    YOUTUBE("YouTube", "YouTube", AspectRatio.RATIO_16_9, Resolution.P1080),
+    YOUTUBE_4K("YouTube 4K", "YouTube", AspectRatio.RATIO_16_9, Resolution.P2160),
+    YOUTUBE_SHORTS("YT Shorts", "YouTube", AspectRatio.RATIO_9_16, Resolution.P1080),
+    MOBILE_HD("Mobile HD", "Web", AspectRatio.RATIO_16_9, Resolution.P720);
+
+    fun applyTo(settings: ExportSettings): ExportSettings =
+        settings.copy(resolution = resolution, aspectRatio = aspectRatio)
 }
 
 /**

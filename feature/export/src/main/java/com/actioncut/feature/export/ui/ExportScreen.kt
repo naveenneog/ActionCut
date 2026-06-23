@@ -38,6 +38,7 @@ import com.actioncut.core.designsystem.component.PrimaryButton
 import com.actioncut.core.designsystem.component.SecondaryButton
 import com.actioncut.core.designsystem.component.SectionHeader
 import com.actioncut.core.designsystem.component.SelectableChip
+import com.actioncut.core.model.ExportPreset
 import com.actioncut.core.model.ExportSettings
 import com.actioncut.core.model.ExportState
 import com.actioncut.core.model.FrameRate
@@ -97,6 +98,8 @@ fun ExportScreen(
 
                 else -> SettingsContent(
                     settings = uiState.settings,
+                    selectedPreset = uiState.selectedPreset,
+                    onPreset = viewModel::setPreset,
                     onResolution = viewModel::setResolution,
                     onFrameRate = viewModel::setFrameRate,
                     onFormat = viewModel::setFormat,
@@ -110,12 +113,17 @@ fun ExportScreen(
 @Composable
 private fun SettingsContent(
     settings: ExportSettings,
+    selectedPreset: ExportPreset?,
+    onPreset: (ExportPreset) -> Unit,
     onResolution: (Resolution) -> Unit,
     onFrameRate: (FrameRate) -> Unit,
     onFormat: (VideoFormat) -> Unit,
     onExport: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionHeader("Platform")
+        ChipRow(ExportPreset.entries.toList(), selectedPreset, { it.displayName }, onPreset)
+
         SectionHeader("Resolution")
         ChipRow(Resolution.entries.toList(), settings.resolution, { it.shortLabel }, onResolution)
 
@@ -145,7 +153,7 @@ private fun SettingsContent(
 @Composable
 private fun <T> ChipRow(
     options: List<T>,
-    selected: T,
+    selected: T?,
     label: (T) -> String,
     onSelect: (T) -> Unit,
 ) {

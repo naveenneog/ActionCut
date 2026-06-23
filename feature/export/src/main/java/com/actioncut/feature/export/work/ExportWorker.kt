@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.actioncut.core.domain.usecase.ExportProjectUseCase
 import com.actioncut.core.domain.usecase.GetProjectUseCase
+import com.actioncut.core.model.AspectRatio
 import com.actioncut.core.model.ExportSettings
 import com.actioncut.core.model.ExportState
 import com.actioncut.core.model.FrameRate
@@ -35,6 +36,8 @@ class ExportWorker @AssistedInject constructor(
             resolution = enumOrDefault(inputData.getString(KEY_RESOLUTION), Resolution.DEFAULT),
             frameRate = enumOrDefault(inputData.getString(KEY_FPS), FrameRate.DEFAULT),
             format = enumOrDefault(inputData.getString(KEY_FORMAT), VideoFormat.MP4_H264),
+            aspectRatio = inputData.getString(KEY_ASPECT)
+                ?.let { runCatching { AspectRatio.valueOf(it) }.getOrNull() },
         )
 
         val project = getProject(projectId) ?: return Result.failure(
@@ -68,6 +71,7 @@ class ExportWorker @AssistedInject constructor(
         const val KEY_RESOLUTION = "resolution"
         const val KEY_FPS = "fps"
         const val KEY_FORMAT = "format"
+        const val KEY_ASPECT = "aspect"
         const val KEY_PROGRESS = "progress"
         const val KEY_OUTPUT_URI = "output_uri"
         const val KEY_ERROR = "error"

@@ -42,6 +42,7 @@ class ExportManager @Inject constructor(
                     ExportWorker.KEY_RESOLUTION to settings.resolution.name,
                     ExportWorker.KEY_FPS to settings.frameRate.name,
                     ExportWorker.KEY_FORMAT to settings.format.name,
+                    ExportWorker.KEY_ASPECT to settings.aspectRatio?.name,
                 ),
             )
             .build()
