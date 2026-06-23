@@ -24,6 +24,10 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        // Editor preview uses Media3 PlayerView/AspectRatioFrameLayout (opt-in APIs).
+        disable += "UnsafeOptInUsageError"
+    }
 }
 
 dependencies {

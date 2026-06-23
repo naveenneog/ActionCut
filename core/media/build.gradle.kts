@@ -21,6 +21,11 @@ android {
         jvmTarget = "17"
         freeCompilerArgs += "-opt-in=androidx.media3.common.util.UnstableApi"
     }
+    lint {
+        // This module is a deliberate, module-wide Media3 integration (opted in via the
+        // compiler arg above), so silence the opt-in lint error to match.
+        disable += "UnsafeOptInUsageError"
+    }
 }
 
 dependencies {
