@@ -60,3 +60,13 @@ data class TextProperties(
 object Fonts {
     val keys = listOf("default", "poppins", "montserrat", "roboto_mono", "playfair", "bebas")
 }
+
+/** Curated emoji set offered in the sticker picker. */
+object Emojis {
+    val popular = listOf(
+        "😀", "😂", "😍", "🥳", "😎", "🔥", "✨", "💯", "👍", "🙌",
+        "👏", "💪", "🎉", "❤️", "💜", "⭐", "🌟", "⚡", "💥", "🎬",
+        "📸", "🎵", "🎶", "😢", "😡", "🤔", "👀", "💀", "🙏", "🤩",
+        "😉", "😴", "🤯", "🥰", "😱", "🚀", "🏆", "👑", "💎", "🌈",
+    )
+}

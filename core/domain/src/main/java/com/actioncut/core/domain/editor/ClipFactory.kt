@@ -7,6 +7,7 @@ import com.actioncut.core.model.MediaItem
 import com.actioncut.core.model.MediaType
 import com.actioncut.core.model.TextAlignment
 import com.actioncut.core.model.TextProperties
+import com.actioncut.core.model.Transform
 
 /** Builds [Clip]s from raw media / user actions with sensible defaults. */
 object ClipFactory {
@@ -55,5 +56,16 @@ object ClipFactory {
             mediaUri = uri,
             timelineStartMs = timelineStartMs,
             timelineEndMs = timelineStartMs + durationMs,
+        )
+
+    /** An emoji "sticker" overlay (rendered as a large glyph; no image asset needed). */
+    fun emojiSticker(emoji: String, timelineStartMs: Long, durationMs: Long = DEFAULT_IMAGE_DURATION_MS): Clip =
+        Clip(
+            id = Ids.clip(),
+            type = ClipType.STICKER,
+            timelineStartMs = timelineStartMs,
+            timelineEndMs = timelineStartMs + durationMs,
+            text = TextProperties(text = emoji, fontSizeSp = 64f),
+            transform = Transform(),
         )
 }

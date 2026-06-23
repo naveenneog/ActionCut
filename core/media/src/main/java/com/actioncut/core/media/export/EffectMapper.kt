@@ -5,16 +5,25 @@ import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.ChannelMixingAudioProcessor
 import androidx.media3.common.audio.ChannelMixingMatrix
 import androidx.media3.common.audio.SonicAudioProcessor
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.AbsoluteSizeSpan
+import android.text.style.ForegroundColorSpan
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.Crop
 import androidx.media3.effect.GaussianBlur
 import androidx.media3.effect.HslAdjustment
+import androidx.media3.effect.OverlayEffect
+import androidx.media3.effect.OverlaySettings
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.RgbAdjustment
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.effect.SingleColorLut
 import androidx.media3.effect.SpeedChangeEffect
+import androidx.media3.effect.TextOverlay
+import androidx.media3.effect.TextureOverlay
+import com.google.common.collect.ImmutableList
 import com.actioncut.core.model.Clip
 import com.actioncut.core.model.ClipType
 import com.actioncut.core.model.CropRect
@@ -32,7 +41,15 @@ import com.actioncut.core.model.VisualEffectType
  */
 object EffectMapper {
 
-    fun videoEffects(clip: Clip, targetWidth: Int, targetHeight: Int): List<Effect> {
+    fun videoEffects(clip: Clip, targetWidth: Int, targetHeight: Int): List<Effect> =
+        videoEffects(clip, targetWidth, targetHeight, emptyList())
+
+    fun videoEffects(
+        clip: Clip,
+        targetWidth: Int,
+        targetHeight: Int,
+        overlays: List<Clip>,
+    ): List<Effect> {
         val effects = mutableListOf<Effect>()
 
         // --- Geometry ---
@@ -76,13 +93,43 @@ object EffectMapper {
             effects += SpeedChangeEffect(clip.speed)
         }
 
-        // --- Output scaling (always last) ---
+        // --- Output scaling ---
         effects += Presentation.createForWidthAndHeight(
             targetWidth,
             targetHeight,
             Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
         )
+
+        // --- Sticker / text overlays (applied last, on the framed output) ---
+        overlayEffect(clip, overlays)?.let { effects += it }
         return effects
+    }
+
+    /** Builds a Media3 [OverlayEffect] for sticker/text clips overlapping [clip]'s span. */
+    private fun overlayEffect(clip: Clip, overlays: List<Clip>): Effect? {
+        val active = overlays.filter { ov ->
+            !ov.text?.text.isNullOrEmpty() &&
+                ov.timelineStartMs < clip.timelineEndMs &&
+                ov.timelineEndMs > clip.timelineStartMs
+        }
+        if (active.isEmpty()) return null
+
+        val textureOverlays: List<TextureOverlay> = active.map { ov ->
+            val props = ov.text!!
+            val span = SpannableString(props.text)
+            val sizePx = (props.fontSizeSp * ov.transform.scale * 2.5f).toInt().coerceAtLeast(24)
+            span.setSpan(AbsoluteSizeSpan(sizePx), 0, span.length, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+            span.setSpan(ForegroundColorSpan(props.colorArgb), 0, span.length, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+            val settings = OverlaySettings.Builder()
+                .setBackgroundFrameAnchor(
+                    ov.transform.offsetX.coerceIn(-1f, 1f),
+                    -ov.transform.offsetY.coerceIn(-1f, 1f),
+                )
+                .setRotationDegrees(ov.transform.rotationDegrees)
+                .build()
+            TextOverlay.createStaticTextOverlay(span, settings)
+        }
+        return OverlayEffect(ImmutableList.copyOf(textureOverlays))
     }
 
     /**

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.FilterVintage
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -38,6 +39,7 @@ val MainTools: List<EditorTool> = listOf(
     EditorTool.FILTERS,
     EditorTool.ADJUST,
     EditorTool.TEXT,
+    EditorTool.STICKER,
     EditorTool.TRANSITIONS,
     EditorTool.EFFECTS,
     EditorTool.REVERSE,
@@ -81,6 +83,7 @@ fun EditorTool.icon(): ImageVector = when (this) {
     EditorTool.FILTERS -> Icons.Filled.FilterVintage
     EditorTool.ADJUST -> Icons.Filled.Tune
     EditorTool.TEXT -> Icons.Filled.TextFields
+    EditorTool.STICKER -> Icons.Filled.EmojiEmotions
     EditorTool.TRANSITIONS -> Icons.Filled.SwapHoriz
     EditorTool.EFFECTS -> Icons.Filled.AutoAwesome
 }

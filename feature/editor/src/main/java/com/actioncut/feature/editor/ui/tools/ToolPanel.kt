@@ -1,5 +1,6 @@
 package com.actioncut.feature.editor.ui.tools
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -22,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.actioncut.core.designsystem.component.AdjustmentSlider
 import com.actioncut.core.designsystem.component.PrimaryButton
 import com.actioncut.core.designsystem.component.SelectableChip
@@ -48,6 +53,7 @@ fun ToolPanel(
     onFilter: (Filter?) -> Unit,
     onAdjust: (ColorAdjustments) -> Unit,
     onAddText: (String) -> Unit,
+    onAddSticker: (String) -> Unit,
     onTransition: (Transition?) -> Unit,
     onAddEffect: (VisualEffect) -> Unit,
     modifier: Modifier = Modifier,
@@ -75,7 +81,7 @@ fun ToolPanel(
                 TextButton(onClick = onClose) { Text("Done") }
             }
 
-            if (selectedClip == null && tool != EditorTool.TEXT) {
+            if (selectedClip == null && tool != EditorTool.TEXT && tool != EditorTool.STICKER) {
                 Text(
                     "Select a clip on the timeline first.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -94,6 +100,7 @@ fun ToolPanel(
                     onAdjust = onAdjust,
                 )
                 EditorTool.TEXT -> TextPanel(selectedClip?.text?.text ?: "", onAddText)
+                EditorTool.STICKER -> StickerPanel(onAddSticker)
                 EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
                 EditorTool.EFFECTS -> EffectsPanel(onAddEffect)
                 else -> Unit
@@ -198,6 +205,26 @@ private fun EffectsPanel(onAddEffect: (VisualEffect) -> Unit) {
                 label = type.displayName,
                 selected = false,
                 onClick = { onAddEffect(VisualEffect(type)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun StickerPanel(onAddSticker: (String) -> Unit) {
+    val haptic = com.actioncut.core.designsystem.component.rememberHaptic()
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(46.dp),
+        modifier = Modifier.heightIn(max = 160.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        gridItems(com.actioncut.core.model.Emojis.popular) { emoji ->
+            Text(
+                text = emoji,
+                fontSize = 30.sp,
+                modifier = Modifier
+                    .padding(6.dp)
+                    .clickable { haptic.tick(); onAddSticker(emoji) },
             )
         }
     }

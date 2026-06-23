@@ -63,6 +63,10 @@ object TimelineEditor {
         return mapTrack(timeline, trackId) { it.copy(clips = it.clips + placed) }
     }
 
+    /** Adds [clip] to [trackId] at its own position (no ripple), keeping the lane sorted. */
+    fun addClip(timeline: Timeline, trackId: String, clip: Clip): Timeline =
+        mapTrack(timeline, trackId) { t -> t.copy(clips = (t.clips + clip).sortedBy { it.timelineStartMs }) }
+
     /** Inserts [clip] at its own [Clip.timelineStartMs]; later clips ripple right. */
     fun insertClip(timeline: Timeline, trackId: String, clip: Clip): Timeline {
         return mapTrack(timeline, trackId) { track ->

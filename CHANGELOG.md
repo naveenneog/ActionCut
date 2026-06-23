@@ -13,6 +13,17 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Overlays — stickers / emoji (InShot feature set, 1/5)
+
+**Added: emoji/sticker overlays.** New **Sticker** tool opens an emoji grid; tapping adds a
+sticker overlay at the playhead on an OVERLAY lane. Overlays render **live on the preview
+canvas** and are **draggable to reposition** (normalized transform). Exported via Media3
+`OverlayEffect` + `TextOverlay` positioned by the clip's transform (added Guava, required
+by the `OverlayEffect` API). `TimelineEditor.addClip` adds overlays without rippling.
+
+> PiP (picture-in-picture) video layering — the other half of this feature — is next.
+
+
 ### Fixes & features from device feedback
 
 **Export reliability — runs directly now.** Replaced the WorkManager-driven export with a

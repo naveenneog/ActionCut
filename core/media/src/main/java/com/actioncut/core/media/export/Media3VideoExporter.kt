@@ -68,7 +68,12 @@ class Media3VideoExporter @Inject constructor(
 
         handler.post {
             runCatching {
-                val editedItems = clips.map { clip -> clip.toEditedMediaItem(targetWidth, targetHeight, settings) }
+                val overlayClips = project.timeline.allClips.filter {
+                    it.type == ClipType.TEXT || it.type == ClipType.STICKER
+                }
+                val editedItems = clips.map { clip ->
+                    clip.toEditedMediaItem(targetWidth, targetHeight, settings, overlayClips)
+                }
                 val videoSequence = EditedMediaItemSequence(editedItems)
 
                 // Mix the audio lane (background music / added audio) as a second sequence.
@@ -139,6 +144,7 @@ class Media3VideoExporter @Inject constructor(
         targetWidth: Int,
         targetHeight: Int,
         settings: ExportSettings,
+        overlays: List<Clip>,
     ): EditedMediaItem {
         val mediaItemBuilder = MediaItem.Builder().setUri(mediaUri)
         if (type != ClipType.IMAGE) {
@@ -152,7 +158,7 @@ class Media3VideoExporter @Inject constructor(
             )
         }
 
-        val videoEffects = EffectMapper.videoEffects(this, targetWidth, targetHeight)
+        val videoEffects = EffectMapper.videoEffects(this, targetWidth, targetHeight, overlays)
         val audioProcessors = EffectMapper.audioProcessors(this)
 
         val builder = EditedMediaItem.Builder(mediaItemBuilder.build())

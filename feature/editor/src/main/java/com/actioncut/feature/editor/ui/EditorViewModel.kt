@@ -226,6 +226,31 @@ class EditorViewModel @Inject constructor(
         mutate(structural = false) { TimelineEditor.setVolume(it, id, if (muted) 1f else 0f) }
     }
 
+    /** Adds an emoji sticker overlay at the playhead on an OVERLAY lane. */
+    fun addStickerAtPlayhead(emoji: String) {
+        val clip = ClipFactory.emojiSticker(emoji, _uiState.value.playheadMs)
+        val track = _uiState.value.timeline.tracks
+            .firstOrNull { it.type == com.actioncut.core.model.TrackType.OVERLAY }
+        mutate(structural = false) { timeline ->
+            if (track != null) {
+                TimelineEditor.addClip(timeline, track.id, clip)
+            } else {
+                val (withTrack, trackId) =
+                    TimelineEditor.addTrack(timeline, com.actioncut.core.model.TrackType.OVERLAY)
+                TimelineEditor.addClip(withTrack, trackId, clip)
+            }
+        }
+        _uiState.update { it.copy(selectedClipId = clip.id) }
+    }
+
+    /** Repositions an overlay (sticker/text) on the preview canvas (normalized -1..1). */
+    fun setOverlayPosition(clipId: String, offsetX: Float, offsetY: Float) {
+        val clip = currentClip(clipId) ?: return
+        mutate(structural = false) {
+            TimelineEditor.setTransform(it, clipId, clip.transform.copy(offsetX = offsetX, offsetY = offsetY))
+        }
+    }
+
     // ------------------------------------------------------------------ property edits
 
     fun setVolume(volume: Float) = withSelected { id ->

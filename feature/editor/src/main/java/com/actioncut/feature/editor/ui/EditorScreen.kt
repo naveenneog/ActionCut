@@ -85,6 +85,14 @@ fun EditorScreen(
             aspectRatio = uiState.aspectRatio,
             isPlaying = uiState.isPlaying,
             onTogglePlay = viewModel::togglePlayPause,
+            overlays = uiState.timeline.allClips.filter {
+                it.type == com.actioncut.core.model.ClipType.TEXT ||
+                    it.type == com.actioncut.core.model.ClipType.STICKER
+            },
+            playheadMs = uiState.playheadMs,
+            selectedClipId = uiState.selectedClipId,
+            onSelectOverlay = viewModel::selectClip,
+            onMoveOverlay = viewModel::setOverlayPosition,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
@@ -130,6 +138,7 @@ fun EditorScreen(
                     onFilter = viewModel::setFilter,
                     onAdjust = viewModel::setAdjustments,
                     onAddText = viewModel::addTextAtPlayhead,
+                    onAddSticker = viewModel::addStickerAtPlayhead,
                     onTransition = viewModel::setTransition,
                     onAddEffect = viewModel::addEffect,
                 )

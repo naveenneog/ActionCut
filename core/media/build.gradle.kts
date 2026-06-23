@@ -38,6 +38,8 @@ dependencies {
 
     // Expose Media3 to consumers (editor preview needs PlayerView/ExoPlayer types).
     api(libs.bundles.media3)
+    // Guava is required to construct Media3 OverlayEffect (ImmutableList parameter).
+    implementation("com.google.guava:guava:33.3.1-android")
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
