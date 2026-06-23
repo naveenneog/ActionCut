@@ -6,6 +6,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.actioncut.core.model.Clip
 import com.actioncut.core.model.ClipType
 import com.actioncut.core.model.Timeline
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,9 +40,16 @@ class PlayerController @Inject constructor(
     private val _state = MutableStateFlow(PlaybackState())
     val state: StateFlow<PlaybackState> = _state.asStateFlow()
 
+    /** Per-playlist-item volume (0..1 for ExoPlayer), kept in sync with the timeline. */
+    private var clipVolumes: List<Float> = emptyList()
+
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) = pushState()
         override fun onPlaybackStateChanged(playbackState: Int) = pushState()
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            applyCurrentVolume()
+            pushState()
+        }
         override fun onPositionDiscontinuity(
             oldPosition: Player.PositionInfo,
             newPosition: Player.PositionInfo,
@@ -55,29 +63,48 @@ class PlayerController @Inject constructor(
 
     /** Rebuilds the preview playlist from [timeline]'s main video lane. */
     fun setTimeline(timeline: Timeline) {
-        val mainTrack = timeline.videoTracks.firstOrNull()
-        val items = mainTrack?.clips.orEmpty()
-            .filter { it.mediaUri != null && it.type != ClipType.TEXT }
-            .map { clip ->
-                val builder = MediaItem.Builder().setUri(clip.mediaUri)
-                if (clip.type == ClipType.IMAGE) {
-                    builder.setImageDurationMs(clip.timelineDurationMs)
-                } else {
-                    builder.setClippingConfiguration(
-                        MediaItem.ClippingConfiguration.Builder()
-                            .setStartPositionMs(clip.sourceInMs)
-                            .setEndPositionMs(
-                                if (clip.sourceOutMs > clip.sourceInMs) clip.sourceOutMs
-                                else C.TIME_END_OF_SOURCE,
-                            )
-                            .build(),
-                    )
-                }
-                builder.build()
+        val clips = previewClips(timeline)
+        clipVolumes = clips.map { it.volume }
+        val items = clips.map { clip ->
+            val builder = MediaItem.Builder().setUri(clip.mediaUri)
+            if (clip.type == ClipType.IMAGE) {
+                builder.setImageDurationMs(clip.timelineDurationMs)
+            } else {
+                builder.setClippingConfiguration(
+                    MediaItem.ClippingConfiguration.Builder()
+                        .setStartPositionMs(clip.sourceInMs)
+                        .setEndPositionMs(
+                            if (clip.sourceOutMs > clip.sourceInMs) clip.sourceOutMs
+                            else C.TIME_END_OF_SOURCE,
+                        )
+                        .build(),
+                )
             }
+            builder.build()
+        }
         player.setMediaItems(items)
         player.prepare()
+        applyCurrentVolume()
         pushState()
+    }
+
+    /**
+     * Updates preview volume/mute without rebuilding the playlist (used for non-structural
+     * volume edits), so muting a clip is reflected live in the preview.
+     */
+    fun updateVolumes(timeline: Timeline) {
+        clipVolumes = previewClips(timeline).map { it.volume }
+        applyCurrentVolume()
+    }
+
+    private fun previewClips(timeline: Timeline): List<Clip> =
+        timeline.videoTracks.firstOrNull()?.clips.orEmpty()
+            .filter { it.mediaUri != null && it.type != ClipType.TEXT }
+
+    private fun applyCurrentVolume() {
+        val index = player.currentMediaItemIndex
+        // ExoPlayer volume is 0..1; clamp (the model allows boost up to 2 for export only).
+        player.volume = clipVolumes.getOrElse(index) { 1f }.coerceIn(0f, 1f)
     }
 
     fun play() {

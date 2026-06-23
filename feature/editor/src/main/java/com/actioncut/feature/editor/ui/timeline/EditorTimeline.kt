@@ -1,5 +1,6 @@
 package com.actioncut.feature.editor.ui.timeline
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -29,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -36,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -75,6 +78,7 @@ fun EditorTimeline(
     onSelectClip: (String?) -> Unit,
     onTrimStart: (String, Long) -> Unit,
     onTrimEnd: (String, Long) -> Unit,
+    onLoadWaveform: (suspend (String) -> FloatArray)? = null,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -123,6 +127,7 @@ fun EditorTimeline(
                         onSelectClip = onSelectClip,
                         onTrimStart = onTrimStart,
                         onTrimEnd = onTrimEnd,
+                        onLoadWaveform = onLoadWaveform,
                     )
                 }
             }
@@ -183,6 +188,7 @@ private fun TrackLane(
     onSelectClip: (String?) -> Unit,
     onTrimStart: (String, Long) -> Unit,
     onTrimEnd: (String, Long) -> Unit,
+    onLoadWaveform: (suspend (String) -> FloatArray)?,
 ) {
     val density = LocalDensity.current
     Box(
@@ -201,6 +207,7 @@ private fun TrackLane(
                     onSelect = { onSelectClip(clip.id) },
                     onTrimStart = onTrimStart,
                     onTrimEnd = onTrimEnd,
+                    onLoadWaveform = onLoadWaveform,
                 )
             }
         }
@@ -215,6 +222,7 @@ private fun ClipBlock(
     onSelect: () -> Unit,
     onTrimStart: (String, Long) -> Unit,
     onTrimEnd: (String, Long) -> Unit,
+    onLoadWaveform: (suspend (String) -> FloatArray)? = null,
 ) {
     val density = LocalDensity.current
     val widthDp = with(density) { (clip.timelineDurationMs / 1000f * pxPerSecond).toDp() }
@@ -230,6 +238,13 @@ private fun ClipBlock(
             .clickableNoRipple { onSelect() },
         contentAlignment = Alignment.CenterStart,
     ) {
+        if (clip.type == ClipType.AUDIO && clip.mediaUri != null && onLoadWaveform != null) {
+            AudioWaveform(
+                uri = clip.mediaUri!!,
+                loader = onLoadWaveform,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
         Row(
             modifier = Modifier.padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -256,6 +271,35 @@ private fun ClipBlock(
                 pxPerSecond = pxPerSecond,
                 onTrimStart = onTrimStart,
                 onTrimEnd = onTrimEnd,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AudioWaveform(
+    uri: String,
+    loader: suspend (String) -> FloatArray,
+    modifier: Modifier = Modifier,
+) {
+    var amplitudes by remember(uri) { mutableStateOf(FloatArray(0)) }
+    LaunchedEffect(uri) {
+        amplitudes = runCatching { loader(uri) }.getOrNull() ?: FloatArray(0)
+    }
+    val waveColor = Color.White.copy(alpha = 0.38f)
+    Canvas(modifier = modifier.padding(horizontal = 6.dp, vertical = 8.dp)) {
+        val amps = amplitudes
+        if (amps.isEmpty()) return@Canvas
+        val barWidth = size.width / amps.size
+        val midY = size.height / 2f
+        for (i in amps.indices) {
+            val barHeight = (amps[i] * size.height).coerceAtLeast(2f)
+            val x = i * barWidth + barWidth / 2f
+            drawLine(
+                color = waveColor,
+                start = Offset(x, midY - barHeight / 2f),
+                end = Offset(x, midY + barHeight / 2f),
+                strokeWidth = (barWidth * 0.55f).coerceAtLeast(1f),
             )
         }
     }

@@ -110,6 +110,7 @@ fun EditorScreen(
             onSelectClip = viewModel::selectClip,
             onTrimStart = viewModel::trimStart,
             onTrimEnd = viewModel::trimEnd,
+            onLoadWaveform = viewModel::loadWaveform,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),

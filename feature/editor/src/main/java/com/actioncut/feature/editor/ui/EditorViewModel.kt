@@ -9,6 +9,7 @@ import com.actioncut.core.domain.usecase.GetProjectUseCase
 import com.actioncut.core.domain.usecase.ResolveMediaUseCase
 import com.actioncut.core.domain.usecase.SaveProjectUseCase
 import com.actioncut.core.media.player.PlayerController
+import com.actioncut.core.media.waveform.WaveformExtractor
 import com.actioncut.core.model.ColorAdjustments
 import com.actioncut.core.model.Filter
 import com.actioncut.core.model.Project
@@ -31,6 +32,7 @@ class EditorViewModel @Inject constructor(
     private val getProject: GetProjectUseCase,
     private val saveProject: SaveProjectUseCase,
     private val resolveMedia: ResolveMediaUseCase,
+    private val waveformExtractor: WaveformExtractor,
     val playerController: PlayerController,
 ) : ViewModel() {
 
@@ -105,6 +107,9 @@ class EditorViewModel @Inject constructor(
     // ------------------------------------------------------------------ selection / tools
 
     fun selectClip(clipId: String?) = _uiState.update { it.copy(selectedClipId = clipId) }
+
+    /** Loads a normalized amplitude envelope for an audio clip's waveform. */
+    suspend fun loadWaveform(uri: String): FloatArray = waveformExtractor.amplitudes(uri)
 
     fun setActiveTool(tool: EditorTool?) {
         when (tool) {
@@ -283,6 +288,9 @@ class EditorViewModel @Inject constructor(
         if (structural) {
             playerController.setTimeline(timeline)
             playerController.seekTo(_uiState.value.playheadMs)
+        } else {
+            // Reflect volume/mute changes in the preview without a disruptive rebuild.
+            playerController.updateVolumes(timeline)
         }
         scheduleSave()
     }

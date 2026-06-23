@@ -13,6 +13,19 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Live preview audio + timeline waveforms
+
+**Added: live preview mute/volume.** `PlayerController` now tracks per-clip volume and
+applies it to ExoPlayer on each `onMediaItemTransition` (and via `updateVolumes` on
+non-structural edits), so muting/adjusting a clip's audio is reflected in the preview
+immediately — not just at export.
+
+**Added: audio waveforms on the timeline.** `WaveformExtractor` decodes a subset of PCM
+via `MediaExtractor` + `MediaCodec` (peak per time bucket, cached in an `LruCache`), with
+a deterministic synthesized fallback when decoding isn't possible. Audio clips render the
+envelope as centered bars on the lane.
+
+
 ### Audio — add music, mute / remove audio, and real export mixing
 
 **Added: in-editor "Audio" tool.** Launches the system audio picker (SAF), takes a
