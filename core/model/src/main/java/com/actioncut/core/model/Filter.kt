@@ -1,5 +1,7 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * A LUT-based color filter (CapCut-style "filters" tab). A filter references a 3D LUT
  * asset (e.g. a `.cube` file packaged in assets) plus an intensity factor.
@@ -10,6 +12,7 @@ package com.actioncut.core.model
  * @property lutAssetPath Path to the LUT asset, or null for built-in/no-op.
  * @property intensity 0f..1f blend strength.
  */
+@Serializable
 data class Filter(
     val id: String,
     val name: String,
@@ -18,6 +21,7 @@ data class Filter(
     val intensity: Float = 1f,
 )
 
+@Serializable
 enum class FilterCategory {
     NONE,
     PORTRAIT,

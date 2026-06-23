@@ -1,8 +1,11 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * The kind of content a [Clip] holds. Determines which editing tools apply.
  */
+@Serializable
 enum class ClipType {
     VIDEO,
     IMAGE,
@@ -34,6 +37,7 @@ enum class ClipType {
  * @property audioFade Fade-in/out envelope.
  * @property transitionToNext Transition blended into the following clip.
  */
+@Serializable
 data class Clip(
     val id: String,
     val type: ClipType,

@@ -1,8 +1,11 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * The kind of media an item or clip represents.
  */
+@Serializable
 enum class MediaType {
     VIDEO,
     IMAGE,
@@ -26,6 +29,7 @@ enum class MediaType {
  * @property dateAddedEpochSec When the file was added, in epoch seconds.
  * @property folderName Bucket / album the media belongs to.
  */
+@Serializable
 data class MediaItem(
     val id: String,
     val uri: String,

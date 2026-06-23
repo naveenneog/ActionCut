@@ -1,8 +1,11 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Canvas aspect ratio for a project. Drives the preview surface and export geometry.
  */
+@Serializable
 enum class AspectRatio(val width: Int, val height: Int, val label: String) {
     RATIO_9_16(9, 16, "9:16"),   // vertical / TikTok / Reels
     RATIO_16_9(16, 9, "16:9"),   // landscape / YouTube
@@ -21,6 +24,7 @@ enum class AspectRatio(val width: Int, val height: Int, val label: String) {
 /**
  * Lightweight summary of a project for list/grid screens (no timeline payload).
  */
+@Serializable
 data class ProjectSummary(
     val id: String,
     val name: String,
@@ -35,6 +39,7 @@ data class ProjectSummary(
  *
  * Persisted to Room (metadata) with the timeline serialized; see `:core:data`.
  */
+@Serializable
 data class Project(
     val id: String,
     val name: String,

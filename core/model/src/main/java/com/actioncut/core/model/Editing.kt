@@ -1,5 +1,7 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Color/tone adjustments applied to a clip. All values are normalized so that 0f means
  * "no change", letting sliders default to centre. Ranges are clamped by the UI.
@@ -11,6 +13,7 @@ package com.actioncut.core.model
  * @property sharpness 0f..1f
  * @property vignette 0f..1f
  */
+@Serializable
 data class ColorAdjustments(
     val brightness: Float = 0f,
     val contrast: Float = 0f,
@@ -31,6 +34,7 @@ data class ColorAdjustments(
 /**
  * Normalized crop rectangle. All values in [0f, 1f] relative to source dimensions.
  */
+@Serializable
 data class CropRect(
     val left: Float = 0f,
     val top: Float = 0f,
@@ -48,6 +52,7 @@ data class CropRect(
  * @property scale Uniform scale (1f = fit).
  * @property rotationDegrees Free rotation.
  */
+@Serializable
 data class Transform(
     val offsetX: Float = 0f,
     val offsetY: Float = 0f,
@@ -58,6 +63,7 @@ data class Transform(
 /**
  * Audio fade envelope for a clip.
  */
+@Serializable
 data class AudioFade(
     val fadeInMs: Long = 0L,
     val fadeOutMs: Long = 0L,

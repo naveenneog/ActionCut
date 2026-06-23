@@ -1,6 +1,9 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /** Catalogue of real-time visual effects that can be stacked on a clip. */
+@Serializable
 enum class VisualEffectType(val displayName: String, val category: EffectCategory) {
     GLITCH("Glitch", EffectCategory.STYLIZE),
     RGB_SPLIT("RGB Split", EffectCategory.STYLIZE),
@@ -15,6 +18,7 @@ enum class VisualEffectType(val displayName: String, val category: EffectCategor
     PIXELATE("Pixelate", EffectCategory.RETRO),
 }
 
+@Serializable
 enum class EffectCategory {
     STYLIZE,
     MOTION,
@@ -31,6 +35,7 @@ enum class EffectCategory {
  * @property startInClipMs Optional effect-on time relative to clip start.
  * @property endInClipMs Optional effect-off time relative to clip start.
  */
+@Serializable
 data class VisualEffect(
     val type: VisualEffectType,
     val intensity: Float = 1f,

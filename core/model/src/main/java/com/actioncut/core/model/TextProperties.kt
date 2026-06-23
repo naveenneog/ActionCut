@@ -1,9 +1,13 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /** Horizontal alignment for text overlays. */
+@Serializable
 enum class TextAlignment { LEFT, CENTER, RIGHT }
 
 /** Entrance/exit animation styles for text. */
+@Serializable
 enum class TextAnimation(val displayName: String) {
     NONE("None"),
     FADE("Fade"),
@@ -33,6 +37,7 @@ enum class TextAnimation(val displayName: String) {
  * @property inAnimation Entrance animation.
  * @property outAnimation Exit animation.
  */
+@Serializable
 data class TextProperties(
     val text: String,
     val fontFamily: String = "default",

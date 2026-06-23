@@ -1,6 +1,9 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /** Output resolutions supported by the export engine. */
+@Serializable
 enum class Resolution(val shortLabel: String, val width: Int, val height: Int) {
     P480("480p", 854, 480),
     P720("720p", 1280, 720),
@@ -16,6 +19,7 @@ enum class Resolution(val shortLabel: String, val width: Int, val height: Int) {
 }
 
 /** Container/codec target for the exported file. */
+@Serializable
 enum class VideoFormat(val extension: String, val mimeType: String) {
     MP4_H264("mp4", "video/avc"),
     MP4_H265("mp4", "video/hevc"),
@@ -23,6 +27,7 @@ enum class VideoFormat(val extension: String, val mimeType: String) {
 }
 
 /** Common frame rates. */
+@Serializable
 enum class FrameRate(val fps: Int) {
     FPS_24(24),
     FPS_30(30),
@@ -36,6 +41,7 @@ enum class FrameRate(val fps: Int) {
 /**
  * Fully describes an export job. Bitrate is derived from resolution/fps when null.
  */
+@Serializable
 data class ExportSettings(
     val resolution: Resolution = Resolution.DEFAULT,
     val frameRate: FrameRate = FrameRate.DEFAULT,

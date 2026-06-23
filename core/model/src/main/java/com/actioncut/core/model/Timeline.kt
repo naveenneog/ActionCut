@@ -1,9 +1,12 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * The layer/lane a [Track] occupies. CapCut-style editors stack multiple lanes:
  * a main video lane, overlay (picture-in-picture) lanes, text lanes and audio lanes.
  */
+@Serializable
 enum class TrackType {
     VIDEO,    // main video/image lane
     OVERLAY,  // picture-in-picture video/image/sticker
@@ -18,6 +21,7 @@ enum class TrackType {
  * @property isMuted Audio muted (audio/video lanes).
  * @property isLocked Editing locked (no drag/trim).
  */
+@Serializable
 data class Track(
     val id: String,
     val type: TrackType,
@@ -39,6 +43,7 @@ data class Track(
  * The complete editable structure of a project: a set of stacked [Track]s plus the
  * current playhead position.
  */
+@Serializable
 data class Timeline(
     val tracks: List<Track> = emptyList(),
     val playheadMs: Long = 0L,

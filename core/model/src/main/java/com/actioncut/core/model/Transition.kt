@@ -1,6 +1,9 @@
 package com.actioncut.core.model
 
+import kotlinx.serialization.Serializable
+
 /** Available transition styles blended between two adjacent clips. */
+@Serializable
 enum class TransitionType(val displayName: String) {
     NONE("None"),
     FADE("Fade"),
@@ -20,6 +23,7 @@ enum class TransitionType(val displayName: String) {
  *
  * @property durationMs How long the blend lasts (overlaps both clips by half).
  */
+@Serializable
 data class Transition(
     val type: TransitionType,
     val durationMs: Long = 500L,
