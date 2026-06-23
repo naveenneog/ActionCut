@@ -1,0 +1,212 @@
+package com.actioncut.feature.editor.ui.tools
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.actioncut.core.designsystem.component.AdjustmentSlider
+import com.actioncut.core.designsystem.component.PrimaryButton
+import com.actioncut.core.designsystem.component.SelectableChip
+import com.actioncut.core.model.Clip
+import com.actioncut.core.model.ColorAdjustments
+import com.actioncut.core.model.Filter
+import com.actioncut.core.model.Filters
+import com.actioncut.core.model.SpeedPresets
+import com.actioncut.core.model.Transition
+import com.actioncut.core.model.TransitionType
+import com.actioncut.core.model.VisualEffect
+import com.actioncut.core.model.VisualEffectType
+import com.actioncut.feature.editor.ui.EditorTool
+import kotlin.math.roundToInt
+
+/** Bottom parameter panel that swaps content based on the active [EditorTool]. */
+@Composable
+fun ToolPanel(
+    tool: EditorTool,
+    selectedClip: Clip?,
+    onClose: () -> Unit,
+    onSpeed: (Float) -> Unit,
+    onVolume: (Float) -> Unit,
+    onFilter: (Filter?) -> Unit,
+    onAdjust: (ColorAdjustments) -> Unit,
+    onAddText: (String) -> Unit,
+    onTransition: (Transition?) -> Unit,
+    onAddEffect: (VisualEffect) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .heightIn(min = 120.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = tool.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onClose) { Text("Done") }
+            }
+
+            if (selectedClip == null && tool != EditorTool.TEXT) {
+                Text(
+                    "Select a clip on the timeline first.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                return@Column
+            }
+
+            when (tool) {
+                EditorTool.SPEED -> SpeedPanel(selectedClip?.speed ?: 1f, onSpeed)
+                EditorTool.VOLUME -> VolumePanel(selectedClip?.volume ?: 1f, onVolume)
+                EditorTool.FILTERS -> FilterPanel(selectedClip?.filter, onFilter)
+                EditorTool.ADJUST -> AdjustPanel(
+                    key = selectedClip?.id ?: "",
+                    current = selectedClip?.adjustments ?: ColorAdjustments.NONE,
+                    onAdjust = onAdjust,
+                )
+                EditorTool.TEXT -> TextPanel(selectedClip?.text?.text ?: "", onAddText)
+                EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
+                EditorTool.EFFECTS -> EffectsPanel(onAddEffect)
+                else -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpeedPanel(current: Float, onSpeed: (Float) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(SpeedPresets.values) { speed ->
+            SelectableChip(
+                label = "${formatSpeed(speed)}x",
+                selected = current == speed,
+                onClick = { onSpeed(speed) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun VolumePanel(current: Float, onVolume: (Float) -> Unit) {
+    AdjustmentSlider(
+        label = "Volume",
+        value = current,
+        onValueChange = onVolume,
+        valueRange = 0f..2f,
+        valueFormatter = { "${(it * 100).roundToInt()}%" },
+    )
+}
+
+@Composable
+private fun FilterPanel(current: Filter?, onFilter: (Filter?) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(Filters.catalogue) { filter ->
+            val isNone = filter.id == Filters.None.id
+            val selected = if (isNone) current == null else current?.id == filter.id
+            SelectableChip(
+                label = filter.name,
+                selected = selected,
+                onClick = { onFilter(if (isNone) null else filter) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdjustPanel(key: String, current: ColorAdjustments, onAdjust: (ColorAdjustments) -> Unit) {
+    var state by remember(key) { mutableStateOf(current) }
+    fun push(updated: ColorAdjustments) {
+        state = updated
+        onAdjust(updated)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        AdjustmentSlider("Brightness", state.brightness, { push(state.copy(brightness = it)) }, valueRange = -1f..1f, valueFormatter = ::signed)
+        AdjustmentSlider("Contrast", state.contrast, { push(state.copy(contrast = it)) }, valueRange = -1f..1f, valueFormatter = ::signed)
+        AdjustmentSlider("Saturation", state.saturation, { push(state.copy(saturation = it)) }, valueRange = -1f..1f, valueFormatter = ::signed)
+        AdjustmentSlider("Warmth", state.warmth, { push(state.copy(warmth = it)) }, valueRange = -1f..1f, valueFormatter = ::signed)
+    }
+}
+
+@Composable
+private fun TextPanel(initial: String, onAddText: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = { Text("Caption text") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        PrimaryButton(
+            text = "Add text",
+            onClick = { if (text.isNotBlank()) onAddText(text) },
+        )
+    }
+}
+
+@Composable
+private fun TransitionPanel(current: Transition?, onTransition: (Transition?) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(TransitionType.entries.toList()) { type ->
+            val selected = (current?.type ?: TransitionType.NONE) == type
+            SelectableChip(
+                label = type.displayName,
+                selected = selected,
+                onClick = {
+                    onTransition(if (type == TransitionType.NONE) null else Transition(type))
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun EffectsPanel(onAddEffect: (VisualEffect) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+        items(VisualEffectType.entries.toList()) { type ->
+            SelectableChip(
+                label = type.displayName,
+                selected = false,
+                onClick = { onAddEffect(VisualEffect(type)) },
+            )
+        }
+    }
+}
+
+private fun signed(value: Float): String {
+    val pct = (value * 100).roundToInt()
+    return if (pct > 0) "+$pct" else "$pct"
+}
+
+private fun formatSpeed(speed: Float): String =
+    if (speed % 1f == 0f) speed.toInt().toString() else speed.toString()

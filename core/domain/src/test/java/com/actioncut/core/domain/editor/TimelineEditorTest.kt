@@ -177,4 +177,21 @@ class TimelineEditorTest {
         assertEquals("a", found.second.id)
         assertNull(TimelineEditor.findClip(timeline, "missing"))
     }
+
+    @Test
+    fun splitClip_reversed_mapsSourceWindowsSymmetrically() {
+        val timeline = timelineWith(videoClip("a", 0, 4000, sIn = 0, sOut = 4000, reversed = true))
+        val result = TimelineEditor.splitClip(timeline, "a", 1500)
+
+        val clips = result.track("t1")!!.clips
+        assertEquals(2, clips.size)
+        // Reversed: the first timeline segment plays the *tail* of the source.
+        assertEquals(2500L, clips[0].sourceInMs)
+        assertEquals(4000L, clips[0].sourceOutMs)
+        assertEquals(0L, clips[1].sourceInMs)
+        assertEquals(2500L, clips[1].sourceOutMs)
+        // Timeline coverage stays contiguous.
+        assertEquals(1500L, clips[0].timelineEndMs)
+        assertEquals(1500L, clips[1].timelineStartMs)
+    }
 }

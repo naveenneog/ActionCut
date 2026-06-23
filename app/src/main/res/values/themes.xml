@@ -1,0 +1,9 @@
+<resources>
+    <!-- Framework Material theme so we don't pull in the View-based Material Components
+         library; Compose supplies the real design system. Dark-first window background. -->
+    <style name="Theme.ActionCut" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ink900</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

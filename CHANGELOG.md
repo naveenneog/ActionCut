@@ -40,3 +40,85 @@ SDK (platforms 35/36, build-tools 35/36, NDK 27, CMake 3.22.1).
 
 **Decision: Gradle Version Catalog (`libs.versions.toml`).**
 Centralizes dependency versions for consistency across modules.
+
+**Decision: `core:common` is a pure-Kotlin (JVM) module.**
+Originally an Android library; converted to `kotlin.jvm` so the pure-Kotlin
+`core:domain` can reuse `Outcome`/`DispatcherProvider`. Android-only UI helpers live
+in `core:designsystem` instead. Keeps the dependency-inversion clean.
+
+### Phase 2 — Media Import & Management
+
+**Added:** `MediaStoreDataSource` (scoped-storage queries over video/image/audio with a
+live `ContentObserver`-backed `Flow`), `MediaRepositoryImpl`, runtime-permission-aware
+`MediaPickerScreen` (multi-select grid with ordered selection badges, Coil video-frame
+thumbnails, duration overlays), and `CreateProjectFromMediaUseCase`.
+
+**Decision: kotlinx.serialization for the timeline.** Added `@Serializable` to the whole
+model graph. Room stores project metadata in columns + the timeline as a JSON blob
+(`ProjectEntity.timelineJson`), decoded lazily. Doubles as cloud-sync readiness (Phase 9).
+
+### Phase 3 — Timeline Editor
+
+**Added:** `EditorTimeline` — a CapCut-style **fixed center playhead** where the content
+scrolls beneath it, so the scroll offset *is* the current time (low-latency scrubbing).
+Multi-track lanes, colored clip blocks, tap-to-select, and **drag-to-trim** handles.
+`EditorViewModel` owns immutable timeline state with a 50-step **undo/redo** stack.
+
+**Decision: pure `TimelineEditor` engine in domain.** All structural edits (add/insert/
+remove-with-ripple/split/trim/move) and property edits are pure functions on immutable
+models — fully unit-tested, including speed/reverse source-window mapping.
+
+### Phase 4 — Editing Tools
+
+**Added:** Split, delete, trim, **speed** (presets + source-duration recompute), reverse,
+rotate, **volume**, **LUT filters** (catalogue), **adjustments** (brightness/contrast/
+saturation/warmth), and **text overlays** — all wired through `TimelineEditor`.
+
+### Phase 5 — Effects & Transitions
+
+**Added:** `Transition`/`TransitionType` (fade/slide/zoom/…) and `VisualEffect`/
+`VisualEffectType` (glitch/blur/VHS/…) models with tool-panel pickers. Preview is
+approximate; the authoritative render is applied at export.
+
+### Phase 6 — Export Engine
+
+**Added:** `Media3VideoExporter` (default `VideoExporter`) builds a Transformer
+`Composition` (clipping + `Presentation` scaling to 480p/720p/1080p/4K), driven on the
+main `Looper` so it works from any thread. **Background export** via a `@HiltWorker`
+`ExportWorker` + `ExportManager` (observes `WorkInfo` → `ExportState`). Export screen
+shows live progress and shares the result via `FileProvider`.
+
+**Decision: WorkManager + Hilt.** `ActionCutApplication` implements
+`Configuration.Provider` with `HiltWorkerFactory`; the default WorkManager initializer is
+removed in the manifest so on-demand init uses our config.
+
+### Phase 7 — Performance
+
+`ThumbnailLoader` with an `LruCache` (~1/8 heap) + `OPTION_CLOSEST_SYNC` keyframe lookup;
+lazy grids/rows everywhere; adaptive timeline ruler tick density; `StateFlow` +
+`WhileSubscribed` to avoid wasted work; immutable state for cheap structural sharing.
+
+### Phase 8 — UI/UX
+
+Dark-first Material 3 design system (electric-violet + mint accents), rounded components,
+haptic feedback on interactions, editor layout (preview / timeline / contextual tools),
+edge-to-edge, adaptive launcher icon.
+
+### Phase 9 — Bonus (stubs)
+
+`CaptionGenerator` port + `StubCaptionGenerator` with a **pluggable config**:
+`AzureManagedIdentity` (DefaultAzureCredential) as the intended default, `ApiKey` for
+other users, or `OnDevice`. Sticker/template/cloud-sync hooks via the serializable model.
+
+### Validation
+
+- `./gradlew assembleDebug` → green; `app-debug.apk` ≈ 21 MB.
+- `./gradlew test` → green. Unit tests cover `TimelineEditor` (incl. reverse split),
+  `TimeFormatter`, timeline/project JSON round-trips, and `CreateProjectFromMediaUseCase`.
+
+**Tried/Rejected:**
+- `inline` members on the `Outcome` sealed interface → Kotlin forbids inline on virtual
+  members; moved to top-level inline extensions.
+- `android:authority` on `<provider>` → correct attribute is `android:authorities`.
+- Hard FFmpegKit dependency → artifacts retired; used pluggable engine (see Phase 1).
+
