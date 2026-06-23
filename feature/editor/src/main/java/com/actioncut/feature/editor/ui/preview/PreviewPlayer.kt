@@ -51,8 +51,15 @@ fun PreviewPlayer(
     pipPlayer: ExoPlayer? = null,
     pipClips: List<Clip> = emptyList(),
     onScaleOverlay: (String, Float) -> Unit = { _, _ -> },
+    fitMode: com.actioncut.core.model.FitMode = com.actioncut.core.model.FitMode.FILL,
+    backgroundColorArgb: Int = 0xFF000000.toInt(),
     modifier: Modifier = Modifier,
 ) {
+    val resizeMode = when (fitMode) {
+        com.actioncut.core.model.FitMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+        com.actioncut.core.model.FitMode.FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+        com.actioncut.core.model.FitMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -62,6 +69,7 @@ fun PreviewPlayer(
         Box(
             modifier = Modifier
                 .aspectRatio(aspectRatio.value)
+                .background(Color(backgroundColorArgb))
                 .clickableNoRipple { onTogglePlay() },
             contentAlignment = Alignment.Center,
         ) {
@@ -70,11 +78,14 @@ fun PreviewPlayer(
                     PlayerView(context).apply {
                         useController = false
                         this.player = player
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        setBackgroundColor(android.graphics.Color.BLACK)
+                        this.resizeMode = resizeMode
+                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     }
                 },
-                update = { it.player = player },
+                update = {
+                    it.player = player
+                    it.resizeMode = resizeMode
+                },
                 modifier = Modifier.fillMaxSize(),
             )
 

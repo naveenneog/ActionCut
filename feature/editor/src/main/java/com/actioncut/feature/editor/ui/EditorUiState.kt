@@ -1,6 +1,7 @@
 package com.actioncut.feature.editor.ui
 
 import com.actioncut.core.model.AspectRatio
+import com.actioncut.core.model.CanvasSettings
 import com.actioncut.core.model.Clip
 import com.actioncut.core.model.Project
 import com.actioncut.core.model.Timeline
@@ -11,6 +12,7 @@ data class EditorUiState(
     val projectName: String = "",
     val timeline: Timeline = Timeline.empty(),
     val aspectRatio: AspectRatio = AspectRatio.DEFAULT,
+    val canvas: CanvasSettings = CanvasSettings(),
     val selectedClipId: String? = null,
     val playheadMs: Long = 0L,
     val isPlaying: Boolean = false,

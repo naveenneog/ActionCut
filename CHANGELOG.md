@@ -13,6 +13,20 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Canvas & background + crop (InShot feature set, 2/5)
+
+**Added: canvas fit modes.** New **Canvas** tool sets the project's **Fit / Fill / Stretch**
+mode and a **background colour** (swatches). Applied live in the preview (PlayerView
+`resizeMode` + canvas colour) and at export (Presentation `LAYOUT_SCALE_TO_FIT` /
+`_WITH_CROP` / `STRETCH_TO_FIT`). Stored on `Project.canvas` (serialized).
+
+**Added: Crop tool.** Per-clip crop via left/top/right/bottom inset sliders; exported via
+the existing Media3 `Crop` effect.
+
+> Blurred-fill background (vs solid colour) is deferred — it needs a two-pass composite and
+> is the one piece I can't verify without a device.
+
+
 ### Picture-in-picture (PiP) — completes the Overlays feature (1/5)
 
 **Added: PiP video layering.** New **PiP** tool picks a video and adds it as a scaled,

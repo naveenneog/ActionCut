@@ -112,6 +112,8 @@ fun EditorScreen(
                 .flatMap { it.clips }
                 .filter { it.type == com.actioncut.core.model.ClipType.VIDEO },
             onScaleOverlay = viewModel::setOverlayScale,
+            fitMode = uiState.canvas.fitMode,
+            backgroundColorArgb = uiState.canvas.backgroundColorArgb,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
@@ -158,6 +160,10 @@ fun EditorScreen(
                     onAdjust = viewModel::setAdjustments,
                     onAddText = viewModel::addTextAtPlayhead,
                     onAddSticker = viewModel::addStickerAtPlayhead,
+                    canvas = uiState.canvas,
+                    onFitMode = viewModel::setFitMode,
+                    onBackgroundColor = viewModel::setBackgroundColor,
+                    onCrop = { rect -> uiState.selectedClipId?.let { viewModel.setCrop(it, rect) } },
                     onTransition = viewModel::setTransition,
                     onAddEffect = viewModel::addEffect,
                 )

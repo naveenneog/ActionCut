@@ -7,6 +7,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Size
 import androidx.media3.effect.OverlaySettings
+import androidx.media3.effect.Presentation
 import androidx.media3.effect.VideoCompositorSettings
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
@@ -74,8 +75,13 @@ class Media3VideoExporter @Inject constructor(
                 val overlayClips = project.timeline.allClips.filter {
                     it.type == ClipType.TEXT || it.type == ClipType.STICKER
                 }
+                val presentationLayout = when (project.canvas.fitMode) {
+                    com.actioncut.core.model.FitMode.FIT -> Presentation.LAYOUT_SCALE_TO_FIT
+                    com.actioncut.core.model.FitMode.FILL -> Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
+                    com.actioncut.core.model.FitMode.STRETCH -> Presentation.LAYOUT_STRETCH_TO_FIT
+                }
                 val editedItems = clips.map { clip ->
-                    clip.toEditedMediaItem(targetWidth, targetHeight, settings, overlayClips)
+                    clip.toEditedMediaItem(targetWidth, targetHeight, settings, overlayClips, presentationLayout)
                 }
                 val videoSequence = EditedMediaItemSequence(editedItems)
 
@@ -89,7 +95,12 @@ class Media3VideoExporter @Inject constructor(
                     .sortedBy { it.timelineStartMs }
                 if (pipClips.isNotEmpty()) {
                     sequences += EditedMediaItemSequence(
-                        pipClips.map { it.toEditedMediaItem(targetWidth, targetHeight, settings, emptyList()) },
+                        pipClips.map {
+                            it.toEditedMediaItem(
+                                targetWidth, targetHeight, settings, emptyList(),
+                                Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
+                            )
+                        },
                     )
                 }
 
@@ -164,6 +175,7 @@ class Media3VideoExporter @Inject constructor(
         targetHeight: Int,
         settings: ExportSettings,
         overlays: List<Clip>,
+        presentationLayout: Int,
     ): EditedMediaItem {
         val mediaItemBuilder = MediaItem.Builder().setUri(mediaUri)
         if (type != ClipType.IMAGE) {
@@ -177,7 +189,7 @@ class Media3VideoExporter @Inject constructor(
             )
         }
 
-        val videoEffects = EffectMapper.videoEffects(this, targetWidth, targetHeight, overlays)
+        val videoEffects = EffectMapper.videoEffects(this, targetWidth, targetHeight, overlays, presentationLayout)
         val audioProcessors = EffectMapper.audioProcessors(this)
 
         val builder = EditedMediaItem.Builder(mediaItemBuilder.build())

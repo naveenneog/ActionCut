@@ -1,13 +1,18 @@
 package com.actioncut.feature.editor.ui.tools
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -25,15 +30,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.actioncut.core.designsystem.component.AdjustmentSlider
 import com.actioncut.core.designsystem.component.PrimaryButton
+import com.actioncut.core.designsystem.component.SecondaryButton
+import com.actioncut.core.designsystem.component.SectionHeader
 import com.actioncut.core.designsystem.component.SelectableChip
+import com.actioncut.core.model.CanvasColors
+import com.actioncut.core.model.CanvasSettings
 import com.actioncut.core.model.Clip
 import com.actioncut.core.model.ColorAdjustments
 import com.actioncut.core.model.Filter
 import com.actioncut.core.model.Filters
+import com.actioncut.core.model.FitMode
 import com.actioncut.core.model.SpeedPresets
 import com.actioncut.core.model.Transition
 import com.actioncut.core.model.TransitionType
@@ -54,6 +66,10 @@ fun ToolPanel(
     onAdjust: (ColorAdjustments) -> Unit,
     onAddText: (String) -> Unit,
     onAddSticker: (String) -> Unit,
+    canvas: CanvasSettings,
+    onFitMode: (FitMode) -> Unit,
+    onBackgroundColor: (Int) -> Unit,
+    onCrop: (com.actioncut.core.model.CropRect) -> Unit,
     onTransition: (Transition?) -> Unit,
     onAddEffect: (VisualEffect) -> Unit,
     modifier: Modifier = Modifier,
@@ -81,7 +97,9 @@ fun ToolPanel(
                 TextButton(onClick = onClose) { Text("Done") }
             }
 
-            if (selectedClip == null && tool != EditorTool.TEXT && tool != EditorTool.STICKER) {
+            if (selectedClip == null && tool != EditorTool.TEXT &&
+                tool != EditorTool.STICKER && tool != EditorTool.CANVAS
+            ) {
                 Text(
                     "Select a clip on the timeline first.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -101,6 +119,8 @@ fun ToolPanel(
                 )
                 EditorTool.TEXT -> TextPanel(selectedClip?.text?.text ?: "", onAddText)
                 EditorTool.STICKER -> StickerPanel(onAddSticker)
+                EditorTool.CANVAS -> CanvasPanel(canvas, onFitMode, onBackgroundColor)
+                EditorTool.CROP -> CropPanel(selectedClip, onCrop)
                 EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
                 EditorTool.EFFECTS -> EffectsPanel(onAddEffect)
                 else -> Unit
@@ -229,6 +249,60 @@ private fun StickerPanel(onAddSticker: (String) -> Unit) {
         }
     }
 }
+
+@Composable
+private fun CanvasPanel(
+    canvas: CanvasSettings,
+    onFitMode: (FitMode) -> Unit,
+    onBackgroundColor: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SectionHeader("Fit")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(FitMode.entries.toList()) { mode ->
+                SelectableChip(mode.displayName, canvas.fitMode == mode, onClick = { onFitMode(mode) })
+            }
+        }
+        SectionHeader("Background")
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(vertical = 6.dp),
+        ) {
+            items(CanvasColors.swatches) { argb ->
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color(argb))
+                        .border(
+                            2.dp,
+                            if (canvas.backgroundColorArgb == argb) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outlineVariant
+                            },
+                            CircleShape,
+                        )
+                        .clickable { onBackgroundColor(argb) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CropPanel(clip: Clip?, onCrop: (com.actioncut.core.model.CropRect) -> Unit) {
+    val crop = clip?.crop ?: com.actioncut.core.model.CropRect()
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        AdjustmentSlider("Left", crop.left, { onCrop(crop.copy(left = it.coerceIn(0f, crop.right - 0.05f))) }, valueRange = 0f..1f, valueFormatter = ::pct)
+        AdjustmentSlider("Top", crop.top, { onCrop(crop.copy(top = it.coerceIn(0f, crop.bottom - 0.05f))) }, valueRange = 0f..1f, valueFormatter = ::pct)
+        AdjustmentSlider("Right", crop.right, { onCrop(crop.copy(right = it.coerceIn(crop.left + 0.05f, 1f))) }, valueRange = 0f..1f, valueFormatter = ::pct)
+        AdjustmentSlider("Bottom", crop.bottom, { onCrop(crop.copy(bottom = it.coerceIn(crop.top + 0.05f, 1f))) }, valueRange = 0f..1f, valueFormatter = ::pct)
+        SecondaryButton(text = "Reset crop", onClick = { onCrop(com.actioncut.core.model.CropRect()) }, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+private fun pct(value: Float): String = "${(value * 100).roundToInt()}%"
 
 private fun signed(value: Float): String {
     val pct = (value * 100).roundToInt()

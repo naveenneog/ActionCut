@@ -7,8 +7,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.FastRewind
@@ -40,6 +42,8 @@ val MainTools: List<EditorTool> = listOf(
     EditorTool.MUTE,
     EditorTool.FILTERS,
     EditorTool.ADJUST,
+    EditorTool.CROP,
+    EditorTool.CANVAS,
     EditorTool.TEXT,
     EditorTool.STICKER,
     EditorTool.TRANSITIONS,
@@ -85,6 +89,8 @@ fun EditorTool.icon(): ImageVector = when (this) {
     EditorTool.ROTATE -> Icons.Filled.RotateRight
     EditorTool.FILTERS -> Icons.Filled.FilterVintage
     EditorTool.ADJUST -> Icons.Filled.Tune
+    EditorTool.CROP -> Icons.Filled.Crop
+    EditorTool.CANVAS -> Icons.Filled.AspectRatio
     EditorTool.TEXT -> Icons.Filled.TextFields
     EditorTool.STICKER -> Icons.Filled.EmojiEmotions
     EditorTool.TRANSITIONS -> Icons.Filled.SwapHoriz

@@ -10,6 +10,7 @@ import com.actioncut.core.domain.usecase.ResolveMediaUseCase
 import com.actioncut.core.domain.usecase.SaveProjectUseCase
 import com.actioncut.core.media.player.PlayerController
 import com.actioncut.core.media.waveform.WaveformExtractor
+import com.actioncut.core.model.CanvasSettings
 import com.actioncut.core.model.ColorAdjustments
 import com.actioncut.core.model.Filter
 import com.actioncut.core.model.Project
@@ -65,6 +66,7 @@ class EditorViewModel @Inject constructor(
                     projectName = project.name,
                     timeline = project.timeline,
                     aspectRatio = project.aspectRatio,
+                    canvas = project.canvas,
                     selectedClipId = project.timeline.allClips.firstOrNull()?.id,
                 )
             }
@@ -257,6 +259,26 @@ class EditorViewModel @Inject constructor(
         val clip = currentClip(clipId) ?: return
         mutate(structural = false) {
             TimelineEditor.setTransform(it, clipId, clip.transform.copy(scale = scale.coerceIn(0.1f, 1f)))
+        }
+    }
+
+    // ------------------------------------------------------------------ canvas / crop
+
+    fun setFitMode(mode: com.actioncut.core.model.FitMode) = updateCanvas { it.copy(fitMode = mode) }
+
+    fun setBackgroundColor(argb: Int) = updateCanvas { it.copy(backgroundColorArgb = argb) }
+
+    private fun updateCanvas(transform: (CanvasSettings) -> CanvasSettings) {
+        val newCanvas = transform(_uiState.value.canvas)
+        _uiState.update { it.copy(canvas = newCanvas) }
+        loadedProject = loadedProject?.copy(canvas = newCanvas)
+        scheduleSave()
+    }
+
+    /** Sets the crop region (normalized 0..1) of the selected clip. */
+    fun setCrop(clipId: String, crop: com.actioncut.core.model.CropRect) {
+        mutate(structural = false) {
+            TimelineEditor.updateClip(it, clipId) { c -> c.copy(crop = crop) }
         }
     }
 

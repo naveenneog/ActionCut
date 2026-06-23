@@ -18,6 +18,8 @@ enum class EditorTool(val label: String, val opensPanel: Boolean) {
     ROTATE("Rotate", false),
     FILTERS("Filters", true),
     ADJUST("Adjust", true),
+    CROP("Crop", true),
+    CANVAS("Canvas", true),
     TEXT("Text", true),
     STICKER("Sticker", true),
     TRANSITIONS("Transition", true),

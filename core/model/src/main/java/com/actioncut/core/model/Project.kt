@@ -45,6 +45,7 @@ data class Project(
     val name: String,
     val aspectRatio: AspectRatio = AspectRatio.DEFAULT,
     val timeline: Timeline = Timeline.empty(),
+    val canvas: CanvasSettings = CanvasSettings(),
     val thumbnailUri: String? = null,
     val createdAtEpochMs: Long = 0L,
     val updatedAtEpochMs: Long = 0L,

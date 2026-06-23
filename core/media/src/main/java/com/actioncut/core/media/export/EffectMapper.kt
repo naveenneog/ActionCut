@@ -49,6 +49,7 @@ object EffectMapper {
         targetWidth: Int,
         targetHeight: Int,
         overlays: List<Clip>,
+        presentationLayout: Int = Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
     ): List<Effect> {
         val effects = mutableListOf<Effect>()
 
@@ -97,7 +98,7 @@ object EffectMapper {
         effects += Presentation.createForWidthAndHeight(
             targetWidth,
             targetHeight,
-            Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP,
+            presentationLayout,
         )
 
         // --- Sticker / text overlays (applied last, on the framed output) ---
