@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local config (machine-specific)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+captures/
+
+# Keystores / secrets
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+
+# Logs
+*.log
+
+# Generated
+*.apk
+*.aab
+*.ap_
+*.dex
