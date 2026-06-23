@@ -47,6 +47,14 @@ class PlayerController @Inject constructor(
         repeatMode = Player.REPEAT_MODE_OFF
     }
 
+    /** Player for picture-in-picture overlay video clips; its surface is rendered by the
+     *  preview. Muted in preview (PiP audio is mixed at export). */
+    val pipPlayer: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+        playWhenReady = false
+        repeatMode = Player.REPEAT_MODE_OFF
+        volume = 0f
+    }
+
     private val _state = MutableStateFlow(PlaybackState())
     val state: StateFlow<PlaybackState> = _state.asStateFlow()
 
@@ -55,11 +63,14 @@ class PlayerController @Inject constructor(
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            mirrorAudioPlayback(isPlaying)
+            mirrorSecondaryPlayers(isPlaying)
             pushState()
         }
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_ENDED) audioPlayer.pause()
+            if (playbackState == Player.STATE_ENDED) {
+                audioPlayer.pause()
+                pipPlayer.pause()
+            }
             pushState()
         }
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -107,8 +118,34 @@ class PlayerController @Inject constructor(
         audioPlayer.setMediaItems(audioItems)
         audioPlayer.prepare()
 
+        // Build the PiP playlist (overlay video clips).
+        val pipItems = pipItems(timeline)
+        pipPlayer.setMediaItems(pipItems)
+        pipPlayer.prepare()
+
         pushState()
     }
+
+    private fun pipItems(timeline: Timeline): List<MediaItem> =
+        timeline.tracks
+            .filter { it.type == com.actioncut.core.model.TrackType.OVERLAY }
+            .flatMap { it.clips }
+            .filter { it.mediaUri != null && it.type == ClipType.VIDEO }
+            .sortedBy { it.timelineStartMs }
+            .map { clip ->
+                MediaItem.Builder()
+                    .setUri(clip.mediaUri)
+                    .setClippingConfiguration(
+                        MediaItem.ClippingConfiguration.Builder()
+                            .setStartPositionMs(clip.sourceInMs)
+                            .setEndPositionMs(
+                                if (clip.sourceOutMs > clip.sourceInMs) clip.sourceOutMs
+                                else C.TIME_END_OF_SOURCE,
+                            )
+                            .build(),
+                    )
+                    .build()
+            }
 
     private fun audioItems(timeline: Timeline): List<MediaItem> =
         timeline.audioTracks
@@ -130,13 +167,15 @@ class PlayerController @Inject constructor(
                     .build()
             }
 
-    private fun mirrorAudioPlayback(isPlaying: Boolean) {
-        if (audioPlayer.mediaItemCount == 0) return
-        if (isPlaying) {
-            audioPlayer.seekTo(player.currentPosition.coerceAtLeast(0))
-            audioPlayer.play()
-        } else {
-            audioPlayer.pause()
+    private fun mirrorSecondaryPlayers(isPlaying: Boolean) {
+        listOf(audioPlayer, pipPlayer).forEach { p ->
+            if (p.mediaItemCount == 0) return@forEach
+            if (isPlaying) {
+                p.seekTo(player.currentPosition.coerceAtLeast(0))
+                p.play()
+            } else {
+                p.pause()
+            }
         }
     }
 
@@ -175,6 +214,7 @@ class PlayerController @Inject constructor(
         val pos = positionMs.coerceAtLeast(0)
         player.seekTo(pos)
         if (audioPlayer.mediaItemCount > 0) audioPlayer.seekTo(pos)
+        if (pipPlayer.mediaItemCount > 0) pipPlayer.seekTo(pos)
         pushState()
     }
 
@@ -182,16 +222,18 @@ class PlayerController @Inject constructor(
         val params = PlaybackParameters(speed.coerceIn(0.1f, 10f))
         player.playbackParameters = params
         audioPlayer.playbackParameters = params
+        pipPlayer.playbackParameters = params
     }
 
     /** Emits the live playhead position while playing (collected on the main thread). */
     fun positionFlow(intervalMs: Long = 33L): Flow<Long> = flow {
         while (true) {
-            // Keep the audio lane time-aligned with the master video player.
-            if (audioPlayer.isPlaying &&
-                kotlin.math.abs(audioPlayer.currentPosition - player.currentPosition) > 300
-            ) {
-                audioPlayer.seekTo(player.currentPosition.coerceAtLeast(0))
+            // Keep the secondary lanes time-aligned with the master video player.
+            val master = player.currentPosition.coerceAtLeast(0)
+            listOf(audioPlayer, pipPlayer).forEach { p ->
+                if (p.isPlaying && kotlin.math.abs(p.currentPosition - master) > 300) {
+                    p.seekTo(master)
+                }
             }
             emit(player.currentPosition)
             delay(intervalMs)
@@ -202,6 +244,7 @@ class PlayerController @Inject constructor(
         player.removeListener(listener)
         player.release()
         audioPlayer.release()
+        pipPlayer.release()
     }
 
     private fun pushState() {

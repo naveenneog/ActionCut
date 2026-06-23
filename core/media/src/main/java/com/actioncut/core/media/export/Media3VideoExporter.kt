@@ -5,6 +5,9 @@ import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.Size
+import androidx.media3.effect.OverlaySettings
+import androidx.media3.effect.VideoCompositorSettings
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -76,9 +79,21 @@ class Media3VideoExporter @Inject constructor(
                 }
                 val videoSequence = EditedMediaItemSequence(editedItems)
 
-                // Mix the audio lane (background music / added audio) as a second sequence.
-                // Media3's compositor mixes audio from all sequences together.
                 val sequences = mutableListOf(videoSequence)
+
+                // Picture-in-picture: overlay video clips composited over the main video.
+                val pipClips = project.timeline.tracks
+                    .filter { it.type == com.actioncut.core.model.TrackType.OVERLAY }
+                    .flatMap { it.clips }
+                    .filter { it.mediaUri != null && it.type == ClipType.VIDEO }
+                    .sortedBy { it.timelineStartMs }
+                if (pipClips.isNotEmpty()) {
+                    sequences += EditedMediaItemSequence(
+                        pipClips.map { it.toEditedMediaItem(targetWidth, targetHeight, settings, emptyList()) },
+                    )
+                }
+
+                // Mix the audio lane (background music / added audio) as another sequence.
                 val audioClips = project.timeline.audioTracks
                     .flatMap { it.clips }
                     .filter { it.mediaUri != null && it.volume > 0f }
@@ -87,7 +102,11 @@ class Media3VideoExporter @Inject constructor(
                     sequences += EditedMediaItemSequence(audioClips.map { it.toAudioEditedMediaItem() })
                 }
 
-                val composition = Composition.Builder(sequences).build()
+                val compositionBuilder = Composition.Builder(sequences)
+                if (pipClips.isNotEmpty()) {
+                    compositionBuilder.setVideoCompositorSettings(pipCompositorSettings(pipClips.first().transform))
+                }
+                val composition = compositionBuilder.build()
 
                 val t = Transformer.Builder(context)
                     .setVideoMimeType(settings.format.mimeType)
@@ -192,6 +211,25 @@ class Media3VideoExporter @Inject constructor(
             .setEffects(Effects(EffectMapper.audioProcessors(this), emptyList()))
             .build()
     }
+
+    /** Compositor settings that scale + position the PiP input (id 1) over the main (id 0). */
+    private fun pipCompositorSettings(transform: com.actioncut.core.model.Transform): VideoCompositorSettings =
+        object : VideoCompositorSettings {
+            override fun getOutputSize(inputSizes: List<Size>): Size = inputSizes.first()
+            override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings =
+                if (inputId == 1) {
+                    OverlaySettings.Builder()
+                        .setScale(transform.scale, transform.scale)
+                        .setOverlayFrameAnchor(0f, 0f)
+                        .setBackgroundFrameAnchor(
+                            transform.offsetX.coerceIn(-1f, 1f),
+                            -transform.offsetY.coerceIn(-1f, 1f),
+                        )
+                        .build()
+                } else {
+                    OverlaySettings.Builder().build()
+                }
+        }
 
     /** Computes even, codec-friendly output dimensions for the given aspect + resolution. */
     private fun targetDimensions(aspect: AspectRatio, resolution: Resolution): Pair<Int, Int> {

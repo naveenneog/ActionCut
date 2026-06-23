@@ -48,6 +48,9 @@ fun PreviewPlayer(
     selectedClipId: String? = null,
     onSelectOverlay: (String) -> Unit = {},
     onMoveOverlay: (String, Float, Float) -> Unit = { _, _, _ -> },
+    pipPlayer: ExoPlayer? = null,
+    pipClips: List<Clip> = emptyList(),
+    onScaleOverlay: (String, Float) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -75,6 +78,19 @@ fun PreviewPlayer(
                 modifier = Modifier.fillMaxSize(),
             )
 
+            if (pipPlayer != null) {
+                PipLayer(
+                    pipPlayer = pipPlayer,
+                    pipClips = pipClips,
+                    playheadMs = playheadMs,
+                    selectedClipId = selectedClipId,
+                    onSelect = onSelectOverlay,
+                    onMove = onMoveOverlay,
+                    onScale = onScaleOverlay,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
             OverlayLayer(
                 overlays = overlays,
                 playheadMs = playheadMs,
@@ -100,6 +116,92 @@ fun PreviewPlayer(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PipLayer(
+    pipPlayer: ExoPlayer,
+    pipClips: List<Clip>,
+    playheadMs: Long,
+    selectedClipId: String?,
+    onSelect: (String) -> Unit,
+    onMove: (String, Float, Float) -> Unit,
+    onScale: (String, Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val active = pipClips.firstOrNull {
+        playheadMs >= it.timelineStartMs && playheadMs < it.timelineEndMs
+    } ?: return
+
+    BoxWithConstraints(modifier) {
+        val w = constraints.maxWidth.toFloat()
+        val h = constraints.maxHeight.toFloat()
+        val t = active.transform
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val pipW = with(density) { (w * t.scale).toDp() }
+        val pipH = with(density) { (h * t.scale).toDp() }
+        val isSelected = active.id == selectedClipId
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(pipW, pipH)
+                .graphicsLayer {
+                    translationX = (t.offsetX / 2f) * w
+                    translationY = (t.offsetY / 2f) * h
+                    rotationZ = t.rotationDegrees
+                }
+                .border(
+                    if (isSelected) 2.dp else 1.dp,
+                    if (isSelected) Color.White else Color.White.copy(alpha = 0.4f),
+                )
+                .pointerInput(active.id, w, h) {
+                    var ox = t.offsetX
+                    var oy = t.offsetY
+                    detectDragGestures(
+                        onDragStart = { onSelect(active.id); ox = active.transform.offsetX; oy = active.transform.offsetY },
+                        onDrag = { change, drag ->
+                            change.consume()
+                            ox = (ox + drag.x / (w / 2f)).coerceIn(-1f, 1f)
+                            oy = (oy + drag.y / (h / 2f)).coerceIn(-1f, 1f)
+                            onMove(active.id, ox, oy)
+                        },
+                    )
+                },
+        ) {
+            AndroidView(
+                factory = { context ->
+                    PlayerView(context).apply {
+                        useController = false
+                        this.player = pipPlayer
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        setBackgroundColor(android.graphics.Color.BLACK)
+                    }
+                },
+                update = { it.player = pipPlayer },
+                modifier = Modifier.fillMaxSize(),
+            )
+            // Resize handle (drag to scale).
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .pointerInput(active.id, w) {
+                        var s = t.scale
+                        detectDragGestures(
+                            onDragStart = { onSelect(active.id); s = active.transform.scale },
+                            onDrag = { change, drag ->
+                                change.consume()
+                                s = (s + drag.x / w).coerceIn(0.1f, 1f)
+                                onScale(active.id, s)
+                            },
+                        )
+                    },
+            )
         }
     }
 }

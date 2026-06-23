@@ -13,6 +13,17 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Picture-in-picture (PiP) — completes the Overlays feature (1/5)
+
+**Added: PiP video layering.** New **PiP** tool picks a video and adds it as a scaled,
+cornered overlay (VIDEO clip on the OVERLAY lane). In the **preview** a second muted,
+time-synced `ExoPlayer` renders the PiP surface — **draggable to reposition and a corner
+handle to resize**. At **export**, the PiP is composited over the main video via
+`Composition.setVideoCompositorSettings(...)` with per-input `OverlaySettings` (scale +
+anchor from the clip transform); this path is isolated to PiP-present exports so normal
+renders are unchanged.
+
+
 ### Overlays — stickers / emoji (InShot feature set, 1/5)
 
 **Added: emoji/sticker overlays.** New **Sticker** tool opens an emoji grid; tapping adds a

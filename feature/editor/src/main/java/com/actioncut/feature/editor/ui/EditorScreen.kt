@@ -63,6 +63,19 @@ fun EditorScreen(
             viewModel.addAudioAtPlayhead(uri.toString())
         }
     }
+    val videoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            viewModel.addPipAtPlayhead(uri.toString())
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -93,6 +106,12 @@ fun EditorScreen(
             selectedClipId = uiState.selectedClipId,
             onSelectOverlay = viewModel::selectClip,
             onMoveOverlay = viewModel::setOverlayPosition,
+            pipPlayer = viewModel.playerController.pipPlayer,
+            pipClips = uiState.timeline.tracks
+                .filter { it.type == com.actioncut.core.model.TrackType.OVERLAY }
+                .flatMap { it.clips }
+                .filter { it.type == com.actioncut.core.model.ClipType.VIDEO },
+            onScaleOverlay = viewModel::setOverlayScale,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
@@ -146,10 +165,10 @@ fun EditorScreen(
                 EditorToolbar(
                     activeTool = uiState.activeTool,
                     onToolSelected = { tool ->
-                        if (tool == EditorTool.AUDIO) {
-                            audioPicker.launch(arrayOf("audio/*"))
-                        } else {
-                            viewModel.setActiveTool(tool)
+                        when (tool) {
+                            EditorTool.AUDIO -> audioPicker.launch(arrayOf("audio/*"))
+                            EditorTool.PIP -> videoPicker.launch(arrayOf("video/*"))
+                            else -> viewModel.setActiveTool(tool)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

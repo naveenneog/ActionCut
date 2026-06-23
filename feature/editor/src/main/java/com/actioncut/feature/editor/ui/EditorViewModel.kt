@@ -120,6 +120,7 @@ class EditorViewModel @Inject constructor(
             EditorTool.MUTE -> { toggleMuteSelected(); clearTool() }
             EditorTool.EXTRACT_AUDIO -> { detachAudioFromSelected(); clearTool() }
             EditorTool.AUDIO -> clearTool() // the screen launches the audio picker
+            EditorTool.PIP -> clearTool() // the screen launches the video picker
             else -> _uiState.update { it.copy(activeTool = tool) }
         }
     }
@@ -248,6 +249,40 @@ class EditorViewModel @Inject constructor(
         val clip = currentClip(clipId) ?: return
         mutate(structural = false) {
             TimelineEditor.setTransform(it, clipId, clip.transform.copy(offsetX = offsetX, offsetY = offsetY))
+        }
+    }
+
+    /** Resizes an overlay / PiP (uniform scale). */
+    fun setOverlayScale(clipId: String, scale: Float) {
+        val clip = currentClip(clipId) ?: return
+        mutate(structural = false) {
+            TimelineEditor.setTransform(it, clipId, clip.transform.copy(scale = scale.coerceIn(0.1f, 1f)))
+        }
+    }
+
+    /** Adds a picked video as a picture-in-picture overlay (scaled, in a corner). */
+    fun addPipAtPlayhead(uri: String) {
+        viewModelScope.launch {
+            val media = resolveMedia(uri) ?: return@launch
+            val base = ClipFactory.fromMedia(
+                media.copy(type = com.actioncut.core.model.MediaType.VIDEO),
+                _uiState.value.playheadMs,
+            )
+            val clip = base.copy(
+                transform = com.actioncut.core.model.Transform(offsetX = 0.4f, offsetY = -0.4f, scale = 0.4f),
+            )
+            val track = _uiState.value.timeline.tracks
+                .firstOrNull { it.type == com.actioncut.core.model.TrackType.OVERLAY }
+            mutate(structural = true) { timeline ->
+                if (track != null) {
+                    TimelineEditor.addClip(timeline, track.id, clip)
+                } else {
+                    val (withTrack, trackId) =
+                        TimelineEditor.addTrack(timeline, com.actioncut.core.model.TrackType.OVERLAY)
+                    TimelineEditor.addClip(withTrack, trackId, clip)
+                }
+            }
+            _uiState.update { it.copy(selectedClipId = clip.id) }
         }
     }
 
