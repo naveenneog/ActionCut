@@ -13,6 +13,33 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Fixes & features from device feedback
+
+**Export reliability — runs directly now.** Replaced the WorkManager-driven export with a
+direct run (the Media3 exporter already marshals onto the main Looper), collected in the
+ViewModel scope. This removes a silent point of failure; failures surface their message.
+
+**Save to Gallery + share.** After a successful render the file is copied into
+`Movies/ActionCut` via MediaStore (`MediaSaver` port → `MediaStoreVideoSaver`, scoped on
+API 29+, legacy on 26–28) and the emitted `Completed` carries a shareable `content://`
+URI. The export screen shows "Saved to your Gallery" with **Share** (works to WhatsApp/
+Instagram/etc. via the content URI) and **Done**.
+
+**Detach / extract audio.** New **Detach** tool extracts a video clip's audio onto a
+separate AUDIO lane (aligned), muting the original clip — CapCut/InShot-style. Exported
+correctly (video audio removed, audio lane mixed).
+
+**Drag-to-move clips.** Long-press a clip to drag it along its lane (`TimelineEditor.moveClip`
+wired through the timeline; preview rebuilt on drop). Previously only trim handles worked.
+
+**Audio plays in preview.** Added a second, time-synced `ExoPlayer` for the AUDIO lane, so
+added music and extracted audio are now audible in the preview (best-effort sync; aligned
+clips from the start play correctly).
+
+**Note:** still can't device-test here, so export robustness is best-effort — if a render
+still fails, the on-screen error message now pinpoints why.
+
+
 ### Live preview audio + timeline waveforms
 
 **Added: live preview mute/volume.** `PlayerController` now tracks per-clip volume and

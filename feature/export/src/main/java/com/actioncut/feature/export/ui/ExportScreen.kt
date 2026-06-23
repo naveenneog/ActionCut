@@ -81,7 +81,6 @@ fun ExportScreen(
         ) {
             when (val state = uiState.exportState) {
                 is ExportState.Completed -> CompletedContent(
-                    outputPath = state.outputUri,
                     onShare = { shareVideo(context, state.outputUri) },
                     onDone = onBack,
                 )
@@ -180,7 +179,7 @@ private fun ProgressContent(progress: Float, onCancel: () -> Unit) {
 }
 
 @Composable
-private fun CompletedContent(outputPath: String, onShare: () -> Unit, onDone: () -> Unit) {
+private fun CompletedContent(onShare: () -> Unit, onDone: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -193,13 +192,13 @@ private fun CompletedContent(outputPath: String, onShare: () -> Unit, onDone: ()
             modifier = Modifier.size(72.dp),
         )
         Text(
-            "Export complete",
+            "Saved to your Gallery",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 16.dp),
         )
         Text(
-            File(outputPath).name,
+            "Movies/ActionCut · ready to share",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
@@ -246,10 +245,13 @@ private fun formatLabel(format: VideoFormat): String = when (format) {
     VideoFormat.WEBM_VP9 -> "WebM · VP9"
 }
 
-private fun shareVideo(context: android.content.Context, path: String) {
+private fun shareVideo(context: android.content.Context, uriString: String) {
     runCatching {
-        val file = File(path)
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val uri = if (uriString.startsWith("content://")) {
+            android.net.Uri.parse(uriString)
+        } else {
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(uriString))
+        }
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "video/*"
             putExtra(Intent.EXTRA_STREAM, uri)

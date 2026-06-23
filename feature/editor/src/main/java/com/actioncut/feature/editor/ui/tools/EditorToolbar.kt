@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FastRewind
@@ -32,6 +33,7 @@ val MainTools: List<EditorTool> = listOf(
     EditorTool.SPEED,
     EditorTool.VOLUME,
     EditorTool.AUDIO,
+    EditorTool.EXTRACT_AUDIO,
     EditorTool.MUTE,
     EditorTool.FILTERS,
     EditorTool.ADJUST,
@@ -73,6 +75,7 @@ fun EditorTool.icon(): ImageVector = when (this) {
     EditorTool.VOLUME -> Icons.Filled.VolumeUp
     EditorTool.MUTE -> Icons.Filled.VolumeOff
     EditorTool.AUDIO -> Icons.Filled.LibraryMusic
+    EditorTool.EXTRACT_AUDIO -> Icons.Filled.CallSplit
     EditorTool.REVERSE -> Icons.Filled.FastRewind
     EditorTool.ROTATE -> Icons.Filled.RotateRight
     EditorTool.FILTERS -> Icons.Filled.FilterVintage

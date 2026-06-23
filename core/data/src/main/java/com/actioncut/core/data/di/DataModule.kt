@@ -8,6 +8,8 @@ import com.actioncut.core.data.local.ActionCutDatabase
 import com.actioncut.core.data.local.dao.ProjectDao
 import com.actioncut.core.data.repository.MediaRepositoryImpl
 import com.actioncut.core.data.repository.ProjectRepositoryImpl
+import com.actioncut.core.data.mediastore.MediaStoreVideoSaver
+import com.actioncut.core.domain.port.MediaSaver
 import com.actioncut.core.domain.repository.MediaRepository
 import com.actioncut.core.domain.repository.ProjectRepository
 import dagger.Binds
@@ -58,4 +60,8 @@ abstract class DataBindingsModule {
 
     @Binds
     abstract fun bindDispatcherProvider(impl: StandardDispatcherProvider): DispatcherProvider
+
+    @Binds
+    @Singleton
+    abstract fun bindMediaSaver(impl: MediaStoreVideoSaver): MediaSaver
 }

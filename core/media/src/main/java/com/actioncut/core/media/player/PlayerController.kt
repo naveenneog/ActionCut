@@ -37,6 +37,16 @@ class PlayerController @Inject constructor(
         repeatMode = Player.REPEAT_MODE_OFF
     }
 
+    /**
+     * Secondary player for the AUDIO lane (music / extracted audio), mixed alongside the
+     * video preview. Kept time-aligned to [player] (best-effort: assumes audio clips run
+     * from the start of the timeline; arbitrary mid-timeline offsets are approximate).
+     */
+    private val audioPlayer: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+        playWhenReady = false
+        repeatMode = Player.REPEAT_MODE_OFF
+    }
+
     private val _state = MutableStateFlow(PlaybackState())
     val state: StateFlow<PlaybackState> = _state.asStateFlow()
 
@@ -44,8 +54,14 @@ class PlayerController @Inject constructor(
     private var clipVolumes: List<Float> = emptyList()
 
     private val listener = object : Player.Listener {
-        override fun onIsPlayingChanged(isPlaying: Boolean) = pushState()
-        override fun onPlaybackStateChanged(playbackState: Int) = pushState()
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            mirrorAudioPlayback(isPlaying)
+            pushState()
+        }
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_ENDED) audioPlayer.pause()
+            pushState()
+        }
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             applyCurrentVolume()
             pushState()
@@ -85,7 +101,43 @@ class PlayerController @Inject constructor(
         player.setMediaItems(items)
         player.prepare()
         applyCurrentVolume()
+
+        // Build the audio-lane playlist for the secondary player.
+        val audioItems = audioItems(timeline)
+        audioPlayer.setMediaItems(audioItems)
+        audioPlayer.prepare()
+
         pushState()
+    }
+
+    private fun audioItems(timeline: Timeline): List<MediaItem> =
+        timeline.audioTracks
+            .flatMap { it.clips }
+            .filter { it.mediaUri != null && it.volume > 0f }
+            .sortedBy { it.timelineStartMs }
+            .map { clip ->
+                MediaItem.Builder()
+                    .setUri(clip.mediaUri)
+                    .setClippingConfiguration(
+                        MediaItem.ClippingConfiguration.Builder()
+                            .setStartPositionMs(clip.sourceInMs)
+                            .setEndPositionMs(
+                                if (clip.sourceOutMs > clip.sourceInMs) clip.sourceOutMs
+                                else C.TIME_END_OF_SOURCE,
+                            )
+                            .build(),
+                    )
+                    .build()
+            }
+
+    private fun mirrorAudioPlayback(isPlaying: Boolean) {
+        if (audioPlayer.mediaItemCount == 0) return
+        if (isPlaying) {
+            audioPlayer.seekTo(player.currentPosition.coerceAtLeast(0))
+            audioPlayer.play()
+        } else {
+            audioPlayer.pause()
+        }
     }
 
     /**
@@ -120,17 +172,27 @@ class PlayerController @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
-        player.seekTo(positionMs.coerceAtLeast(0))
+        val pos = positionMs.coerceAtLeast(0)
+        player.seekTo(pos)
+        if (audioPlayer.mediaItemCount > 0) audioPlayer.seekTo(pos)
         pushState()
     }
 
     fun setSpeed(speed: Float) {
-        player.playbackParameters = PlaybackParameters(speed.coerceIn(0.1f, 10f))
+        val params = PlaybackParameters(speed.coerceIn(0.1f, 10f))
+        player.playbackParameters = params
+        audioPlayer.playbackParameters = params
     }
 
     /** Emits the live playhead position while playing (collected on the main thread). */
     fun positionFlow(intervalMs: Long = 33L): Flow<Long> = flow {
         while (true) {
+            // Keep the audio lane time-aligned with the master video player.
+            if (audioPlayer.isPlaying &&
+                kotlin.math.abs(audioPlayer.currentPosition - player.currentPosition) > 300
+            ) {
+                audioPlayer.seekTo(player.currentPosition.coerceAtLeast(0))
+            }
             emit(player.currentPosition)
             delay(intervalMs)
         }
@@ -139,6 +201,7 @@ class PlayerController @Inject constructor(
     fun release() {
         player.removeListener(listener)
         player.release()
+        audioPlayer.release()
     }
 
     private fun pushState() {

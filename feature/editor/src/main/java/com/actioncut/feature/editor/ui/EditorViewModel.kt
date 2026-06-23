@@ -118,6 +118,7 @@ class EditorViewModel @Inject constructor(
             EditorTool.REVERSE -> { toggleReverse(); clearTool() }
             EditorTool.ROTATE -> { rotateSelected(); clearTool() }
             EditorTool.MUTE -> { toggleMuteSelected(); clearTool() }
+            EditorTool.EXTRACT_AUDIO -> { detachAudioFromSelected(); clearTool() }
             EditorTool.AUDIO -> clearTool() // the screen launches the audio picker
             else -> _uiState.update { it.copy(activeTool = tool) }
         }
@@ -153,6 +154,25 @@ class EditorViewModel @Inject constructor(
 
     fun trimEnd(clipId: String, newEndMs: Long) =
         mutate(structural = true) { TimelineEditor.trimClipEnd(it, clipId, newEndMs) }
+
+    /** Drag-to-move a clip along its lane (no player rebuild during the drag). */
+    fun moveClip(clipId: String, newStartMs: Long) {
+        val track = TimelineEditor.findClip(_uiState.value.timeline, clipId)?.first ?: return
+        mutate(structural = false) {
+            TimelineEditor.moveClip(it, clipId, track.id, newStartMs.coerceAtLeast(0))
+        }
+    }
+
+    /** Rebuilds the preview once a drag-arrange finishes. */
+    fun commitArrangement() {
+        playerController.setTimeline(_uiState.value.timeline)
+        playerController.seekTo(_uiState.value.playheadMs)
+    }
+
+    /** Extracts the selected video clip's audio onto a separate audio lane. */
+    fun detachAudioFromSelected() = withSelected { id ->
+        mutate(structural = true) { TimelineEditor.detachAudio(it, id) }
+    }
 
     fun setSpeed(speed: Float) = withSelected { id ->
         mutate(structural = true) { TimelineEditor.setSpeed(it, id, speed) }

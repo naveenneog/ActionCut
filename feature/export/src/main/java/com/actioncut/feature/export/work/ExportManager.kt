@@ -1,72 +1,66 @@
 package com.actioncut.feature.export.work
 
 import android.content.Context
-import android.os.Environment
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
-import androidx.work.workDataOf
+import com.actioncut.core.domain.port.MediaSaver
+import com.actioncut.core.domain.usecase.ExportProjectUseCase
+import com.actioncut.core.domain.usecase.GetProjectUseCase
 import com.actioncut.core.model.ExportSettings
 import com.actioncut.core.model.ExportState
+import com.actioncut.core.model.VideoFormat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.channelFlow
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Enqueues [ExportWorker] jobs and exposes their progress as an [ExportState] flow by
- * observing WorkManager's [WorkInfo]. The output file is written to the app-specific
- * external Movies directory (scoped-storage friendly, no extra permissions).
+ * Runs a project export and saves the result to the device Gallery.
+ *
+ * The export runs **directly** (the Media3 exporter already marshals onto the main
+ * Looper), collected within the caller's coroutine scope — this removed the WorkManager
+ * indirection that was a silent point of failure. On completion the file is copied into
+ * `Movies/ActionCut` via [MediaSaver], and the emitted [ExportState.Completed] carries the
+ * shareable gallery `content://` URI.
  */
 @Singleton
 class ExportManager @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val getProject: GetProjectUseCase,
+    private val exportProject: ExportProjectUseCase,
+    private val mediaSaver: MediaSaver,
 ) {
-    private val workManager = WorkManager.getInstance(context)
-
     data class ExportHandle(val outputPath: String, val state: Flow<ExportState>)
 
     fun export(projectId: String, settings: ExportSettings): ExportHandle {
-        val dir = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir
         val fileName = "ActionCut_${System.currentTimeMillis()}.${settings.format.extension}"
-        val outputPath = File(dir, fileName).absolutePath
+        val outputFile = File(context.cacheDir, fileName)
+        val outputPath = outputFile.absolutePath
 
-        val request = OneTimeWorkRequestBuilder<ExportWorker>()
-            .setInputData(
-                workDataOf(
-                    ExportWorker.KEY_PROJECT_ID to projectId,
-                    ExportWorker.KEY_OUTPUT_PATH to outputPath,
-                    ExportWorker.KEY_RESOLUTION to settings.resolution.name,
-                    ExportWorker.KEY_FPS to settings.frameRate.name,
-                    ExportWorker.KEY_FORMAT to settings.format.name,
-                    ExportWorker.KEY_ASPECT to settings.aspectRatio?.name,
-                ),
-            )
-            .build()
-
-        workManager.enqueueUniqueWork(uniqueName(projectId), ExistingWorkPolicy.REPLACE, request)
-
-        val flow = workManager.getWorkInfoByIdFlow(request.id)
-            .map { info -> info.toExportState(outputPath) }
-        return ExportHandle(outputPath, flow)
+        val state = channelFlow {
+            val project = getProject(projectId)
+            if (project == null) {
+                trySend(ExportState.Failed("Project not found"))
+                close()
+                return@channelFlow
+            }
+            exportProject(project, settings, outputPath).collect { s ->
+                if (s is ExportState.Completed) {
+                    val mime = if (settings.format == VideoFormat.WEBM_VP9) "video/webm" else "video/mp4"
+                    val galleryUri = runCatching {
+                        mediaSaver.saveVideoToGallery(outputPath, fileName, mime)
+                    }.getOrNull()
+                    runCatching { outputFile.delete() }
+                    trySend(ExportState.Completed(galleryUri ?: s.outputUri))
+                } else {
+                    trySend(s)
+                }
+            }
+            close()
+        }
+        return ExportHandle(outputPath, state)
     }
 
-    fun cancel(projectId: String) {
-        workManager.cancelUniqueWork(uniqueName(projectId))
-    }
-
-    private fun uniqueName(projectId: String) = "export_$projectId"
-
-    private fun WorkInfo?.toExportState(outputPath: String): ExportState = when (this?.state) {
-        null, WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> ExportState.InProgress(0f)
-        WorkInfo.State.RUNNING -> ExportState.InProgress(progress.getFloat(ExportWorker.KEY_PROGRESS, 0f))
-        WorkInfo.State.SUCCEEDED ->
-            ExportState.Completed(outputData.getString(ExportWorker.KEY_OUTPUT_URI) ?: outputPath)
-        WorkInfo.State.FAILED ->
-            ExportState.Failed(outputData.getString(ExportWorker.KEY_ERROR) ?: "Export failed")
-        WorkInfo.State.CANCELLED -> ExportState.Cancelled
-    }
+    /** Cancellation is handled by cancelling the collecting coroutine (see ViewModel). */
+    fun cancel(projectId: String) = Unit
 }

@@ -169,10 +169,22 @@ class TimelineEditorTest {
     }
 
     @Test
-    fun setVolume_zeroMutesClip() {
+    fun detachAudio_createsAlignedAudioClipAndMutesVideo() {
         val timeline = timelineWith(videoClip("a", 0, 4000))
-        val result = TimelineEditor.setVolume(timeline, "a", 0f)
-        assertEquals(0f, result.track("t1")!!.clips.first().volume)
+        val result = TimelineEditor.detachAudio(timeline, "a")
+
+        // Original video clip is muted.
+        val video = result.videoTracks.first().clips.first { it.id == "a" }
+        assertEquals(0f, video.volume)
+
+        // A new audio lane holds an aligned audio clip.
+        val audioTrack = result.tracks.first { it.type == TrackType.AUDIO }
+        assertEquals(1, audioTrack.clips.size)
+        val audio = audioTrack.clips.first()
+        assertEquals(ClipType.AUDIO, audio.type)
+        assertEquals(0L, audio.timelineStartMs)
+        assertEquals(4000L, audio.timelineEndMs)
+        assertEquals("uri://a", audio.mediaUri)
     }
 
     @Test

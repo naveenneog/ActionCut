@@ -3,6 +3,7 @@ package com.actioncut.feature.editor.ui.timeline
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
@@ -78,6 +79,8 @@ fun EditorTimeline(
     onSelectClip: (String?) -> Unit,
     onTrimStart: (String, Long) -> Unit,
     onTrimEnd: (String, Long) -> Unit,
+    onMoveClip: (String, Long) -> Unit = { _, _ -> },
+    onMoveCommit: () -> Unit = {},
     onLoadWaveform: (suspend (String) -> FloatArray)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -127,6 +130,8 @@ fun EditorTimeline(
                         onSelectClip = onSelectClip,
                         onTrimStart = onTrimStart,
                         onTrimEnd = onTrimEnd,
+                        onMoveClip = onMoveClip,
+                        onMoveCommit = onMoveCommit,
                         onLoadWaveform = onLoadWaveform,
                     )
                 }
@@ -188,6 +193,8 @@ private fun TrackLane(
     onSelectClip: (String?) -> Unit,
     onTrimStart: (String, Long) -> Unit,
     onTrimEnd: (String, Long) -> Unit,
+    onMoveClip: (String, Long) -> Unit,
+    onMoveCommit: () -> Unit,
     onLoadWaveform: (suspend (String) -> FloatArray)?,
 ) {
     val density = LocalDensity.current
@@ -207,6 +214,8 @@ private fun TrackLane(
                     onSelect = { onSelectClip(clip.id) },
                     onTrimStart = onTrimStart,
                     onTrimEnd = onTrimEnd,
+                    onMoveClip = onMoveClip,
+                    onMoveCommit = onMoveCommit,
                     onLoadWaveform = onLoadWaveform,
                 )
             }
@@ -222,11 +231,15 @@ private fun ClipBlock(
     onSelect: () -> Unit,
     onTrimStart: (String, Long) -> Unit,
     onTrimEnd: (String, Long) -> Unit,
+    onMoveClip: (String, Long) -> Unit = { _, _ -> },
+    onMoveCommit: () -> Unit = {},
     onLoadWaveform: (suspend (String) -> FloatArray)? = null,
 ) {
     val density = LocalDensity.current
     val widthDp = with(density) { (clip.timelineDurationMs / 1000f * pxPerSecond).toDp() }
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    var moveAnchor by remember(clip.id) { mutableLongStateOf(clip.timelineStartMs) }
+    var moveAcc by remember(clip.id) { mutableFloatStateOf(0f) }
 
     Box(
         modifier = Modifier
@@ -235,7 +248,21 @@ private fun ClipBlock(
             .clip(RoundedCornerShape(6.dp))
             .background(laneColor(clip.type))
             .border(2.dp, borderColor, RoundedCornerShape(6.dp))
-            .clickableNoRipple { onSelect() },
+            .clickableNoRipple { onSelect() }
+            .pointerInput(clip.id, pxPerSecond) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        onSelect()
+                        moveAnchor = clip.timelineStartMs
+                        moveAcc = 0f
+                    },
+                    onDrag = { _, drag ->
+                        moveAcc += drag.x
+                        onMoveClip(clip.id, moveAnchor + (moveAcc / pxPerSecond * 1000f).toLong())
+                    },
+                    onDragEnd = { onMoveCommit() },
+                )
+            },
         contentAlignment = Alignment.CenterStart,
     ) {
         if (clip.type == ClipType.AUDIO && clip.mediaUri != null && onLoadWaveform != null) {

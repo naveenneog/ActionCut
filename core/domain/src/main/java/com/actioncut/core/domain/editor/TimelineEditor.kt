@@ -216,6 +216,47 @@ object TimelineEditor {
     }
 
     // ---------------------------------------------------------------------------------
+    // Audio
+    // ---------------------------------------------------------------------------------
+
+    /**
+     * Extracts (detaches) the audio of a video clip into a separate audio clip on an AUDIO
+     * lane, aligned to the same timeline position, and mutes the original video clip so the
+     * audio isn't doubled. CapCut/InShot-style "Extract audio".
+     */
+    fun detachAudio(timeline: Timeline, clipId: String): Timeline {
+        val located = findClip(timeline, clipId) ?: return timeline
+        val (_, clip) = located
+        if (clip.type != ClipType.VIDEO || clip.mediaUri == null) return timeline
+
+        val audioClip = Clip(
+            id = newClipId(),
+            type = ClipType.AUDIO,
+            mediaUri = clip.mediaUri,
+            timelineStartMs = clip.timelineStartMs,
+            timelineEndMs = clip.timelineEndMs,
+            sourceInMs = clip.sourceInMs,
+            sourceOutMs = clip.sourceOutMs,
+            speed = clip.speed,
+            isReversed = clip.isReversed,
+            volume = if (clip.volume <= 0f) 1f else clip.volume,
+        )
+
+        // Mute the original video clip's audio (it now lives on the audio lane).
+        val muted = updateClip(timeline, clipId) { it.copy(volume = 0f) }
+
+        val audioTrack = muted.tracks.firstOrNull { it.type == TrackType.AUDIO }
+        return if (audioTrack != null) {
+            mapTrack(muted, audioTrack.id) { t ->
+                t.copy(clips = (t.clips + audioClip).sortedBy { it.timelineStartMs })
+            }
+        } else {
+            val (withTrack, trackId) = addTrack(muted, TrackType.AUDIO)
+            mapTrack(withTrack, trackId) { t -> t.copy(clips = t.clips + audioClip) }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------
     // Property updates
     // ---------------------------------------------------------------------------------
 
