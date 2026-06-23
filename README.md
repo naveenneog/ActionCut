@@ -1,5 +1,9 @@
 # ActionCut 🎬
 
+[![CI](https://github.com/naveenneog/ActionCut/actions/workflows/ci.yml/badge.svg)](https://github.com/naveenneog/ActionCut/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/naveenneog/ActionCut?color=7C5CFF)](https://github.com/naveenneog/ActionCut/releases/latest)
+[![Pages](https://img.shields.io/badge/demo-live-00E5C0)](https://naveenneog.github.io/ActionCut/)
+
 A blazing-fast, modern Android video editor inspired by CapCut — built with Jetpack
 Compose, Clean Architecture, and a hardware-accelerated Media3 pipeline.
 

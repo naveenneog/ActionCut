@@ -79,6 +79,12 @@
   .tech{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
   .tag{font-size:13px;border:1px solid var(--ink600);border-radius:999px;padding:7px 15px;color:var(--muted)}
 
+  .shots{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+  .shots figure{margin:0;text-align:center}
+  .shots img{width:240px;border-radius:30px;border:1px solid var(--ink600);box-shadow:0 26px 64px -18px rgba(0,0,0,.85);background:#000;transition:transform .25s ease}
+  .shots img:hover{transform:translateY(-6px)}
+  .shots figcaption{margin-top:14px;font-size:14px;color:var(--muted)}
+
   footer{border-top:1px solid var(--ink600);padding:40px 0;text-align:center;color:var(--muted);font-size:14px}
   footer a{color:var(--violet)}
 
@@ -97,6 +103,7 @@
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
+    <a href="#screenshots">Screenshots</a>
     <a href="#export">Export</a>
     <a href="#architecture">Architecture</a>
     <a class="btn btn-ghost" href="https://github.com/naveenneog/ActionCut">GitHub</a>
@@ -131,6 +138,17 @@
     <div class="card"><div class="ic">🚀</div><h3>Background export</h3><p>WorkManager-driven Media3 Transformer renders up to 4K with live progress, then shares straight to any app.</p></div>
     <div class="card"><div class="ic">🔤</div><h3>Text &amp; transitions</h3><p>Animated captions, fades, slides and zooms between clips with a clean, tappable tool panel.</p></div>
     <div class="card"><div class="ic">🌙</div><h3>Dark-first design</h3><p>A modern Material 3 design system with haptics, smooth motion and an electric violet/mint palette.</p></div>
+  </div>
+</div></section>
+
+<section id="screenshots"><div class="wrap reveal">
+  <div class="eyebrow">Screenshots</div>
+  <h2>See it in action</h2>
+  <p class="lead">The project library, the multi-track timeline editor, and one-tap platform export.</p>
+  <div class="shots">
+    <figure><img src="screenshots/home.png" alt="ActionCut home screen — project library" loading="lazy" /><figcaption>Project library</figcaption></figure>
+    <figure><img src="screenshots/editor.png" alt="ActionCut editor — multi-track timeline and tools" loading="lazy" /><figcaption>Timeline editor</figcaption></figure>
+    <figure><img src="screenshots/export.png" alt="ActionCut export — platform presets and progress" loading="lazy" /><figcaption>Platform export</figcaption></figure>
   </div>
 </div></section>
 
