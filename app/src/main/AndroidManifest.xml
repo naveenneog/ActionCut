@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Microphone for voiceover recording -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Legacy read for API <= 32 -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"

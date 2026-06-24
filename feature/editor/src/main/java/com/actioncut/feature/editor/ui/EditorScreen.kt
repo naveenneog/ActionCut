@@ -76,6 +76,16 @@ fun EditorScreen(
             viewModel.addPipAtPlayhead(uri.toString())
         }
     }
+    val recordPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.startVoiceover() }
+    val requestVoiceover = {
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.RECORD_AUDIO,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.startVoiceover()
+        else recordPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+    }
 
     Column(
         modifier = Modifier
@@ -168,6 +178,9 @@ fun EditorScreen(
                     onTransition = viewModel::setTransition,
                     onToggleEffect = viewModel::toggleEffect,
                     onAddLibraryTrack = viewModel::addLibraryTrackAtPlayhead,
+                    isRecordingVoiceover = uiState.isRecordingVoiceover,
+                    onStartVoiceover = requestVoiceover,
+                    onStopVoiceover = viewModel::stopVoiceover,
                     onAddKeyframe = viewModel::addKeyframeAtPlayhead,
                     onClearKeyframes = viewModel::clearKeyframes,
                 )

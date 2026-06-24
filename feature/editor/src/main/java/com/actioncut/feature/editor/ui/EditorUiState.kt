@@ -21,6 +21,7 @@ data class EditorUiState(
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val isExporting: Boolean = false,
+    val isRecordingVoiceover: Boolean = false,
 ) {
     val durationMs: Long get() = timeline.durationMs
 

@@ -35,6 +35,7 @@ class EditorViewModel @Inject constructor(
     private val resolveMedia: ResolveMediaUseCase,
     private val resolveLibraryAudio: com.actioncut.core.domain.usecase.ResolveLibraryAudioUseCase,
     private val waveformExtractor: WaveformExtractor,
+    private val voiceRecorder: com.actioncut.core.media.audio.VoiceRecorder,
     val playerController: PlayerController,
 ) : ViewModel() {
 
@@ -236,6 +237,20 @@ class EditorViewModel @Inject constructor(
             val uri = resolveLibraryAudio(track.rawResName) ?: return@launch
             addAudioAtPlayhead(uri)
         }
+    }
+
+    /** Starts microphone voiceover capture (caller must hold RECORD_AUDIO permission). */
+    fun startVoiceover() {
+        if (voiceRecorder.start()) {
+            _uiState.update { it.copy(isRecordingVoiceover = true) }
+        }
+    }
+
+    /** Stops voiceover capture and drops the recording on the audio lane at the playhead. */
+    fun stopVoiceover() {
+        val uri = voiceRecorder.stop()
+        _uiState.update { it.copy(isRecordingVoiceover = false) }
+        if (uri != null) addAudioAtPlayhead(uri)
     }
 
     /** Adds an emoji sticker overlay at the playhead on an OVERLAY lane. */
@@ -480,6 +495,7 @@ class EditorViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         saveNow()
+        voiceRecorder.cancel()
         playerController.release()
     }
 

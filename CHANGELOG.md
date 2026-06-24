@@ -13,6 +13,20 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Voiceover recording (InShot feature set, 5/5 — part 2 · completes the set)
+
+**Added: record a voiceover from the mic.** New **Voiceover** tool shows a record/stop
+control with a live indicator. Recording uses `MediaRecorder` (AAC/MP4) into the app cache
+(`core/media/.../audio/VoiceRecorder.kt`); on stop the take drops onto the audio lane at the
+playhead via the shared add-audio path, so it previews and mixes into the export.
+
+**Permissions:** declares `RECORD_AUDIO`; the editor requests it at first use via an
+`ActivityResultContracts.RequestPermission` launcher and only starts capture once granted.
+The recorder is cancelled in `onCleared` so a dangling mic session can't leak.
+
+This completes the InShot-style feature set (overlays/PiP, canvas/crop, keyframes/speed,
+effect shaders + transitions, and now music/SFX + voiceover).
+
 ### Built-in music & SFX library (InShot feature set, 5/5 — part 1)
 
 **Added: a royalty-free audio library.** New **Music** tool opens a picker with **Music**

@@ -79,6 +79,9 @@ fun ToolPanel(
     onTransition: (Transition?) -> Unit,
     onToggleEffect: (VisualEffectType) -> Unit,
     onAddLibraryTrack: (com.actioncut.core.model.LibraryTrack) -> Unit,
+    isRecordingVoiceover: Boolean,
+    onStartVoiceover: () -> Unit,
+    onStopVoiceover: () -> Unit,
     onAddKeyframe: () -> Unit,
     onClearKeyframes: () -> Unit,
     modifier: Modifier = Modifier,
@@ -108,7 +111,7 @@ fun ToolPanel(
 
             if (selectedClip == null && tool != EditorTool.TEXT &&
                 tool != EditorTool.STICKER && tool != EditorTool.CANVAS &&
-                tool != EditorTool.MUSIC
+                tool != EditorTool.MUSIC && tool != EditorTool.VOICEOVER
             ) {
                 Text(
                     "Select a clip on the timeline first.",
@@ -135,6 +138,7 @@ fun ToolPanel(
                 EditorTool.TEXT -> TextPanel(selectedClip?.text?.text ?: "", onAddText)
                 EditorTool.STICKER -> StickerPanel(onAddSticker)
                 EditorTool.MUSIC -> MusicPanel(onAddLibraryTrack)
+                EditorTool.VOICEOVER -> VoiceoverPanel(isRecordingVoiceover, onStartVoiceover, onStopVoiceover)
                 EditorTool.CANVAS -> CanvasPanel(canvas, onFitMode, onBackgroundColor)
                 EditorTool.CROP -> CropPanel(selectedClip, onCrop)
                 EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
@@ -360,6 +364,42 @@ private fun MusicPanel(onAddLibraryTrack: (com.actioncut.core.model.LibraryTrack
         }
         Text(
             "Royalty-free built-in tracks. Tap to add to the audio lane at the playhead.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun VoiceoverPanel(
+    isRecording: Boolean,
+    onStartVoiceover: () -> Unit,
+    onStopVoiceover: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isRecording) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+            )
+            Text(
+                if (isRecording) "Recording…" else "Ready to record",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        if (isRecording) {
+            PrimaryButton(text = "Stop & add", onClick = onStopVoiceover)
+        } else {
+            PrimaryButton(text = "Record voiceover", onClick = onStartVoiceover)
+        }
+        Text(
+            "Records from your mic and drops the take on the audio lane at the playhead.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
