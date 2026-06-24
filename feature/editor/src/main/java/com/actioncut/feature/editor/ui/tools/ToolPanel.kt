@@ -248,17 +248,24 @@ private fun TextPanel(initial: String, onAddText: (String) -> Unit) {
 
 @Composable
 private fun TransitionPanel(current: Transition?, onTransition: (Transition?) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
-        items(TransitionType.entries.toList()) { type ->
-            val selected = (current?.type ?: TransitionType.NONE) == type
-            SelectableChip(
-                label = type.displayName,
-                selected = selected,
-                onClick = {
-                    onTransition(if (type == TransitionType.NONE) null else Transition(type))
-                },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+            items(TransitionType.entries.toList()) { type ->
+                val selected = (current?.type ?: TransitionType.NONE) == type
+                SelectableChip(
+                    label = type.displayName,
+                    selected = selected,
+                    onClick = {
+                        onTransition(if (type == TransitionType.NONE) null else Transition(type))
+                    },
+                )
+            }
         }
+        Text(
+            "Applies to the cut into the next clip. Renders on export; Slide/Wipe fall back to a fade.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

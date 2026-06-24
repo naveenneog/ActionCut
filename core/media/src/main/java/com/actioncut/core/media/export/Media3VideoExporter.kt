@@ -80,8 +80,15 @@ class Media3VideoExporter @Inject constructor(
                     com.actioncut.core.model.FitMode.FILL -> Presentation.LAYOUT_SCALE_TO_FIT_WITH_CROP
                     com.actioncut.core.model.FitMode.STRETCH -> Presentation.LAYOUT_STRETCH_TO_FIT
                 }
-                val editedItems = clips.map { clip ->
-                    clip.toEditedMediaItem(targetWidth, targetHeight, settings, overlayClips, presentationLayout)
+                val editedItems = clips.mapIndexed { index, clip ->
+                    val incoming = clips.getOrNull(index - 1)?.transitionToNext
+                        ?.takeIf { it.type != com.actioncut.core.model.TransitionType.NONE }
+                    val outgoing = clip.transitionToNext
+                        ?.takeIf { it.type != com.actioncut.core.model.TransitionType.NONE }
+                    clip.toEditedMediaItem(
+                        targetWidth, targetHeight, settings, overlayClips, presentationLayout,
+                        incoming, outgoing,
+                    )
                 }
                 val videoSequence = EditedMediaItemSequence(editedItems)
 
@@ -176,6 +183,8 @@ class Media3VideoExporter @Inject constructor(
         settings: ExportSettings,
         overlays: List<Clip>,
         presentationLayout: Int,
+        incoming: com.actioncut.core.model.Transition? = null,
+        outgoing: com.actioncut.core.model.Transition? = null,
     ): EditedMediaItem {
         val mediaItemBuilder = MediaItem.Builder().setUri(mediaUri)
         if (type != ClipType.IMAGE) {
@@ -190,6 +199,28 @@ class Media3VideoExporter @Inject constructor(
         }
 
         val videoEffects = EffectMapper.videoEffects(this, targetWidth, targetHeight, overlays, presentationLayout)
+            .toMutableList()
+
+        // Transitions: ramp this clip's leading/trailing edge (fade/zoom/blur). Applied
+        // after the framing/overlays so the whole composited frame transitions.
+        val clipDurUs = timelineDurationMs * 1_000L
+        incoming?.let { tr ->
+            val edgeUs = (tr.durationMs * 1_000L).coerceAtMost(clipDurUs / 2)
+            if (edgeUs > 0L) {
+                videoEffects += TransitionEffect(
+                    TransitionEdge.IN, TransitionEffect.kindFor(tr.type), edgeUs, clipDurUs,
+                )
+            }
+        }
+        outgoing?.let { tr ->
+            val edgeUs = (tr.durationMs * 1_000L).coerceAtMost(clipDurUs / 2)
+            if (edgeUs > 0L) {
+                videoEffects += TransitionEffect(
+                    TransitionEdge.OUT, TransitionEffect.kindFor(tr.type), edgeUs, clipDurUs,
+                )
+            }
+        }
+
         val audioProcessors = EffectMapper.audioProcessors(this)
 
         val builder = EditedMediaItem.Builder(mediaItemBuilder.build())

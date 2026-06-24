@@ -13,6 +13,22 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Transitions at export (InShot feature set, 4/5 — part 2)
+
+**Added: transitions now render on export.** Previously `transitionToNext` was stored but
+never applied. A new `TransitionEffect` (custom `GlEffect`) ramps each clip's leading/trailing
+edge so a transition reads across the cut into the next clip:
+- **Fade / Dissolve** → fade through black (also the honest fallback for **Slide/Wipe**, which
+  would need the neighbouring clip's frames that Media3 Transformer can't composite).
+- **Zoom In / Zoom Out** → push toward centre.
+- **Blur** → ramps a cheap box blur at the boundary.
+
+The exporter pairs an out-edge on clip A with the in-edge on clip B (from `transitionToNext`),
+applied after framing/overlays. The Transition panel notes the export behaviour.
+
+> Honest caveat: true A→B crossfades/dissolves need cross-clip compositing that Transformer
+> doesn't support, so these are single-clip edge ramps; best with normal-speed clips.
+
 ### Stylized effect shaders (InShot feature set, 4/5 — part 1)
 
 **Added: custom GL shader render path.** New `ShaderEffect` (`GlEffect`) + `ShaderProgram`
