@@ -155,6 +155,7 @@ fun EditorScreen(
                     selectedClip = uiState.selectedClip,
                     onClose = { viewModel.setActiveTool(null) },
                     onSpeed = viewModel::setSpeed,
+                    onSpeedRamp = viewModel::setSpeedRamp,
                     onVolume = viewModel::setVolume,
                     onFilter = viewModel::setFilter,
                     onAdjust = viewModel::setAdjustments,
@@ -166,6 +167,8 @@ fun EditorScreen(
                     onCrop = { rect -> uiState.selectedClipId?.let { viewModel.setCrop(it, rect) } },
                     onTransition = viewModel::setTransition,
                     onAddEffect = viewModel::addEffect,
+                    onAddKeyframe = viewModel::addKeyframeAtPlayhead,
+                    onClearKeyframes = viewModel::clearKeyframes,
                 )
             } else {
                 EditorToolbar(

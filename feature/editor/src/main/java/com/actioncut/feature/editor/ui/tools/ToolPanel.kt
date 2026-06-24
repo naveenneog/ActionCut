@@ -47,6 +47,7 @@ import com.actioncut.core.model.Filter
 import com.actioncut.core.model.Filters
 import com.actioncut.core.model.FitMode
 import com.actioncut.core.model.SpeedPresets
+import com.actioncut.core.model.SpeedRamp
 import com.actioncut.core.model.Transition
 import com.actioncut.core.model.TransitionType
 import com.actioncut.core.model.VisualEffect
@@ -61,6 +62,7 @@ fun ToolPanel(
     selectedClip: Clip?,
     onClose: () -> Unit,
     onSpeed: (Float) -> Unit,
+    onSpeedRamp: (SpeedRamp) -> Unit,
     onVolume: (Float) -> Unit,
     onFilter: (Filter?) -> Unit,
     onAdjust: (ColorAdjustments) -> Unit,
@@ -72,6 +74,8 @@ fun ToolPanel(
     onCrop: (com.actioncut.core.model.CropRect) -> Unit,
     onTransition: (Transition?) -> Unit,
     onAddEffect: (VisualEffect) -> Unit,
+    onAddKeyframe: () -> Unit,
+    onClearKeyframes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -109,7 +113,12 @@ fun ToolPanel(
             }
 
             when (tool) {
-                EditorTool.SPEED -> SpeedPanel(selectedClip?.speed ?: 1f, onSpeed)
+                EditorTool.SPEED -> SpeedPanel(
+                    selectedClip?.speed ?: 1f,
+                    selectedClip?.speedRamp ?: SpeedRamp.NONE,
+                    onSpeed,
+                    onSpeedRamp,
+                )
                 EditorTool.VOLUME -> VolumePanel(selectedClip?.volume ?: 1f, onVolume)
                 EditorTool.FILTERS -> FilterPanel(selectedClip?.filter, onFilter)
                 EditorTool.ADJUST -> AdjustPanel(
@@ -123,6 +132,7 @@ fun ToolPanel(
                 EditorTool.CROP -> CropPanel(selectedClip, onCrop)
                 EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
                 EditorTool.EFFECTS -> EffectsPanel(onAddEffect)
+                EditorTool.KEYFRAME -> KeyframePanel(selectedClip, onAddKeyframe, onClearKeyframes)
                 else -> Unit
             }
         }
@@ -130,14 +140,47 @@ fun ToolPanel(
 }
 
 @Composable
-private fun SpeedPanel(current: Float, onSpeed: (Float) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
-        items(SpeedPresets.values) { speed ->
-            SelectableChip(
-                label = "${formatSpeed(speed)}x",
-                selected = current == speed,
-                onClick = { onSpeed(speed) },
-            )
+private fun SpeedPanel(
+    current: Float,
+    currentRamp: SpeedRamp,
+    onSpeed: (Float) -> Unit,
+    onSpeedRamp: (SpeedRamp) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+            items(SpeedPresets.values) { speed ->
+                SelectableChip(
+                    label = "${formatSpeed(speed)}x",
+                    selected = current == speed && currentRamp == SpeedRamp.NONE,
+                    onClick = { onSpeed(speed) },
+                )
+            }
+        }
+        SectionHeader("Speed ramp")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
+            items(SpeedRamp.values()) { ramp ->
+                SelectableChip(
+                    label = ramp.label,
+                    selected = currentRamp == ramp,
+                    onClick = { onSpeedRamp(ramp) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun KeyframePanel(clip: Clip?, onAddKeyframe: () -> Unit, onClearKeyframes: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "${clip?.keyframes?.size ?: 0} keyframe(s). Move/scale an overlay or PiP, " +
+                "scrub the playhead, then add a keyframe to animate position, scale & opacity.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PrimaryButton(text = "Add keyframe", onClick = onAddKeyframe)
+            SecondaryButton(text = "Clear", onClick = onClearKeyframes)
         }
     }
 }

@@ -149,7 +149,8 @@ private fun PipLayer(
     BoxWithConstraints(modifier) {
         val w = constraints.maxWidth.toFloat()
         val h = constraints.maxHeight.toFloat()
-        val t = active.transform
+        val props = com.actioncut.core.model.Keyframes.propsAt(active, playheadMs - active.timelineStartMs)
+        val t = props.transform
         val density = androidx.compose.ui.platform.LocalDensity.current
         val pipW = with(density) { (w * t.scale).toDp() }
         val pipH = with(density) { (h * t.scale).toDp() }
@@ -163,6 +164,7 @@ private fun PipLayer(
                     translationX = (t.offsetX / 2f) * w
                     translationY = (t.offsetY / 2f) * h
                     rotationZ = t.rotationDegrees
+                    alpha = props.opacity
                 }
                 .border(
                     if (isSelected) 2.dp else 1.dp,
@@ -232,7 +234,8 @@ private fun OverlayLayer(
         overlays
             .filter { playheadMs >= it.timelineStartMs && playheadMs < it.timelineEndMs }
             .forEach { clip ->
-                val t = clip.transform
+                val props = com.actioncut.core.model.Keyframes.propsAt(clip, playheadMs - clip.timelineStartMs)
+                val t = props.transform
                 val glyph = clip.text?.text ?: ""
                 val baseSp = clip.text?.fontSizeSp ?: 24f
                 val isSelected = clip.id == selectedClipId
@@ -247,6 +250,7 @@ private fun OverlayLayer(
                             translationX = (t.offsetX / 2f) * w
                             translationY = (t.offsetY / 2f) * h
                             rotationZ = t.rotationDegrees
+                            alpha = props.opacity
                         }
                         .then(
                             if (isSelected) {

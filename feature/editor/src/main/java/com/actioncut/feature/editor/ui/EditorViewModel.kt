@@ -282,6 +282,46 @@ class EditorViewModel @Inject constructor(
         }
     }
 
+    // ------------------------------------------------------------------ keyframes
+
+    /**
+     * Captures the selected clip's current transform + opacity as a keyframe at the
+     * playhead (relative to the clip start). Re-adding near an existing keyframe
+     * (<50ms) replaces it, so you can nudge a pose and re-capture.
+     */
+    fun addKeyframeAtPlayhead() = withSelected { id ->
+        val clip = currentClip(id) ?: return@withSelected
+        val timeInClip = (_uiState.value.playheadMs - clip.timelineStartMs).coerceAtLeast(0L)
+        val kf = com.actioncut.core.model.Keyframe(
+            timeMs = timeInClip,
+            offsetX = clip.transform.offsetX,
+            offsetY = clip.transform.offsetY,
+            scale = clip.transform.scale,
+            rotationDegrees = clip.transform.rotationDegrees,
+            opacity = clip.opacity,
+        )
+        mutate(structural = false) { timeline ->
+            TimelineEditor.updateClip(timeline, id) { c ->
+                val others = c.keyframes.filter { kotlin.math.abs(it.timeMs - timeInClip) > 50L }
+                c.copy(keyframes = (others + kf).sortedBy { it.timeMs })
+            }
+        }
+    }
+
+    /** Removes all keyframes from the selected clip (returns to a static transform). */
+    fun clearKeyframes() = withSelected { id ->
+        mutate(structural = false) { timeline ->
+            TimelineEditor.updateClip(timeline, id) { c -> c.copy(keyframes = emptyList()) }
+        }
+    }
+
+    /** Sets a speed ramp preset on the selected clip (best-effort, video lane). */
+    fun setSpeedRamp(ramp: com.actioncut.core.model.SpeedRamp) = withSelected { id ->
+        mutate(structural = false) { timeline ->
+            TimelineEditor.updateClip(timeline, id) { c -> c.copy(speedRamp = ramp) }
+        }
+    }
+
     /** Adds a picked video as a picture-in-picture overlay (scaled, in a corner). */
     fun addPipAtPlayhead(uri: String) {
         viewModelScope.launch {

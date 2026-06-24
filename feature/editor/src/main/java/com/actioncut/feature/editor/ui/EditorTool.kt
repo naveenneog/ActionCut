@@ -24,4 +24,5 @@ enum class EditorTool(val label: String, val opensPanel: Boolean) {
     STICKER("Sticker", true),
     TRANSITIONS("Transition", true),
     EFFECTS("Effects", true),
+    KEYFRAME("Keyframe", true),
 }

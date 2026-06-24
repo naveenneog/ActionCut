@@ -13,6 +13,24 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Keyframe animation + speed curves (InShot feature set, 3/5)
+
+**Added: keyframe animation.** New **Keyframe** tool animates an overlay/PiP/text clip's
+**position, scale, rotation and opacity** over time. Move/scale a layer, scrub the playhead,
+and press **Add keyframe** to capture a pose (re-adding within 50 ms replaces it); **Clear**
+removes them. Pure interpolation lives in `core/model/Keyframe.kt` (`Keyframes.propsAt`) so
+the **preview** (`PreviewPlayer` overlay + PiP layers) and the **export** path share identical
+math. At export the PiP `VideoCompositorSettings.getOverlaySettings(id, presentationTimeUs)`
+samples the curve per-frame, so an animated PiP moves/zooms in the rendered file.
+
+**Added: speed ramps.** The **Speed** panel gains ramp presets — *Slow → Fast*, *Fast → Slow*,
+*Bullet time*, *Montage 2x* — on top of the constant-speed chips. Stored as `Clip.speedRamp`
+and exported via `SpeedChangeEffect(SpeedProvider)`, where a `RampSpeedProvider` samples the
+curve into piecewise-constant 100 ms steps (`core/model/SpeedRamp.kt`).
+
+> Best-effort, honest caveat: speed ramps drive the **video** lane; audio is sped uniformly,
+> so on long ramps audio may drift. Keyframe export assumes the PiP lane starts at timeline 0.
+
 ### Canvas & background + crop (InShot feature set, 2/5)
 
 **Added: canvas fit modes.** New **Canvas** tool sets the project's **Fit / Fill / Stretch**

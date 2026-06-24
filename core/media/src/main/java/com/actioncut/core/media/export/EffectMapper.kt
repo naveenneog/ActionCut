@@ -1,10 +1,12 @@
 package com.actioncut.core.media.export
 
 import androidx.media3.common.Effect
+import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.ChannelMixingAudioProcessor
 import androidx.media3.common.audio.ChannelMixingMatrix
 import androidx.media3.common.audio.SonicAudioProcessor
+import androidx.media3.common.audio.SpeedProvider
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.AbsoluteSizeSpan
@@ -27,6 +29,8 @@ import com.google.common.collect.ImmutableList
 import com.actioncut.core.model.Clip
 import com.actioncut.core.model.ClipType
 import com.actioncut.core.model.CropRect
+import com.actioncut.core.model.SpeedRamp
+import com.actioncut.core.model.SpeedRamps
 import com.actioncut.core.model.VisualEffect
 import com.actioncut.core.model.VisualEffectType
 
@@ -89,9 +93,14 @@ object EffectMapper {
         // --- Stylistic visual effects ---
         clip.effects.forEach { ve -> visualEffect(ve)?.let { effects += it } }
 
-        // --- Speed (video) ---
-        if (clip.speed != 1f && clip.type == ClipType.VIDEO) {
-            effects += SpeedChangeEffect(clip.speed)
+        // --- Speed (video): constant or a variable ramp curve ---
+        if (clip.type == ClipType.VIDEO) {
+            if (clip.speedRamp != SpeedRamp.NONE) {
+                val durUs = (clip.sourceDurationMs.takeIf { it > 0L } ?: clip.timelineDurationMs) * 1000L
+                effects += SpeedChangeEffect(RampSpeedProvider(clip.speedRamp, clip.speed, durUs))
+            } else if (clip.speed != 1f) {
+                effects += SpeedChangeEffect(clip.speed)
+            }
         }
 
         // --- Output scaling ---
@@ -171,5 +180,32 @@ object EffectMapper {
         // Stylized/retro looks (glitch, VHS, grain, pixelate, …) have no stock Media3
         // effect; they're skipped at export until custom GL shaders are added.
         else -> null
+    }
+}
+
+/**
+ * A [SpeedProvider] that samples a [SpeedRamp] curve into piecewise-constant 100ms steps,
+ * giving Media3 a variable speed across the clip's source duration. Speed is held constant
+ * within each step (matching [getNextSpeedChangeTimeUs] boundaries) so the GL pipeline can
+ * resample frames cleanly.
+ */
+private class RampSpeedProvider(
+    private val ramp: SpeedRamp,
+    private val base: Float,
+    private val durationUs: Long,
+    private val stepUs: Long = 100_000L,
+) : SpeedProvider {
+
+    override fun getSpeed(timeUs: Long): Float {
+        if (durationUs <= 0L) return base.coerceIn(0.1f, 8f)
+        val stepStart = (timeUs / stepUs) * stepUs
+        val progress = stepStart.toFloat() / durationUs.toFloat()
+        return SpeedRamps.multiplierAt(ramp, progress, base)
+    }
+
+    override fun getNextSpeedChangeTimeUs(timeUs: Long): Long {
+        if (durationUs <= 0L) return C.TIME_UNSET
+        val next = ((timeUs / stepUs) + 1) * stepUs
+        return if (next >= durationUs) C.TIME_UNSET else next
     }
 }

@@ -59,6 +59,8 @@ data class Clip(
     val text: TextProperties? = null,
     val audioFade: AudioFade = AudioFade(),
     val transitionToNext: Transition? = null,
+    val keyframes: List<Keyframe> = emptyList(),
+    val speedRamp: SpeedRamp = SpeedRamp.NONE,
 ) {
     /** Length occupied on the timeline. */
     val timelineDurationMs: Long get() = (timelineEndMs - timelineStartMs).coerceAtLeast(0L)

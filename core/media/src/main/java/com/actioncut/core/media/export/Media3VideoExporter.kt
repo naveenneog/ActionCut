@@ -115,7 +115,7 @@ class Media3VideoExporter @Inject constructor(
 
                 val compositionBuilder = Composition.Builder(sequences)
                 if (pipClips.isNotEmpty()) {
-                    compositionBuilder.setVideoCompositorSettings(pipCompositorSettings(pipClips.first().transform))
+                    compositionBuilder.setVideoCompositorSettings(pipCompositorSettings(pipClips.first()))
                 }
                 val composition = compositionBuilder.build()
 
@@ -224,18 +224,24 @@ class Media3VideoExporter @Inject constructor(
             .build()
     }
 
-    /** Compositor settings that scale + position the PiP input (id 1) over the main (id 0). */
-    private fun pipCompositorSettings(transform: com.actioncut.core.model.Transform): VideoCompositorSettings =
+    /**
+     * Compositor settings that scale + position the PiP input (id 1) over the main (id 0).
+     * Reads keyframes per-frame so an animated PiP moves/zooms across the export, matching
+     * the live preview. Assumes the PiP lane starts at timeline 0 (best-effort).
+     */
+    private fun pipCompositorSettings(pip: com.actioncut.core.model.Clip): VideoCompositorSettings =
         object : VideoCompositorSettings {
             override fun getOutputSize(inputSizes: List<Size>): Size = inputSizes.first()
             override fun getOverlaySettings(inputId: Int, presentationTimeUs: Long): OverlaySettings =
                 if (inputId == 1) {
+                    val props = com.actioncut.core.model.Keyframes.propsAt(pip, presentationTimeUs / 1000L)
+                    val t = props.transform
                     OverlaySettings.Builder()
-                        .setScale(transform.scale, transform.scale)
+                        .setScale(t.scale, t.scale)
                         .setOverlayFrameAnchor(0f, 0f)
                         .setBackgroundFrameAnchor(
-                            transform.offsetX.coerceIn(-1f, 1f),
-                            -transform.offsetY.coerceIn(-1f, 1f),
+                            t.offsetX.coerceIn(-1f, 1f),
+                            -t.offsetY.coerceIn(-1f, 1f),
                         )
                         .build()
                 } else {
