@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.FilterVintage
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.Speed
@@ -38,6 +39,7 @@ val MainTools: List<EditorTool> = listOf(
     EditorTool.SPEED,
     EditorTool.VOLUME,
     EditorTool.AUDIO,
+    EditorTool.MUSIC,
     EditorTool.PIP,
     EditorTool.EXTRACT_AUDIO,
     EditorTool.MUTE,
@@ -85,6 +87,7 @@ fun EditorTool.icon(): ImageVector = when (this) {
     EditorTool.VOLUME -> Icons.Filled.VolumeUp
     EditorTool.MUTE -> Icons.Filled.VolumeOff
     EditorTool.AUDIO -> Icons.Filled.LibraryMusic
+    EditorTool.MUSIC -> Icons.Filled.MusicNote
     EditorTool.PIP -> Icons.Filled.PictureInPictureAlt
     EditorTool.EXTRACT_AUDIO -> Icons.Filled.CallSplit
     EditorTool.REVERSE -> Icons.Filled.FastRewind

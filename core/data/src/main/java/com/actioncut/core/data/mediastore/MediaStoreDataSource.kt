@@ -168,6 +168,26 @@ class MediaStoreDataSource @Inject constructor(
         return item
     }
 
+    /**
+     * Copies a bundled `res/raw/<rawResName>` audio asset (the built-in music/SFX library)
+     * into the app cache and returns a `file://` URI for it. Resolved by name via
+     * [android.content.res.Resources.getIdentifier] so `:core:data` needs no compile-time
+     * dependency on the app module's `R`. Returns null if the resource is missing.
+     */
+    fun resolveLibraryTrack(rawResName: String): String? {
+        val resId = context.resources.getIdentifier(rawResName, "raw", context.packageName)
+        if (resId == 0) return null
+        return runCatching {
+            val outFile = java.io.File(context.cacheDir, "library_$rawResName.wav")
+            if (!outFile.exists() || outFile.length() == 0L) {
+                context.resources.openRawResource(resId).use { input ->
+                    outFile.outputStream().use { output -> input.copyTo(output) }
+                }
+            }
+            android.net.Uri.fromFile(outFile).toString()
+        }.getOrNull()
+    }
+
     @Suppress("unused")
     private val sdkInt = Build.VERSION.SDK_INT
 }

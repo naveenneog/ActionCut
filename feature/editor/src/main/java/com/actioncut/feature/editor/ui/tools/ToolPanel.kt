@@ -12,7 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -39,6 +42,8 @@ import com.actioncut.core.designsystem.component.PrimaryButton
 import com.actioncut.core.designsystem.component.SecondaryButton
 import com.actioncut.core.designsystem.component.SectionHeader
 import com.actioncut.core.designsystem.component.SelectableChip
+import com.actioncut.core.model.AudioCategory
+import com.actioncut.core.model.AudioLibrary
 import com.actioncut.core.model.CanvasColors
 import com.actioncut.core.model.CanvasSettings
 import com.actioncut.core.model.Clip
@@ -73,6 +78,7 @@ fun ToolPanel(
     onCrop: (com.actioncut.core.model.CropRect) -> Unit,
     onTransition: (Transition?) -> Unit,
     onToggleEffect: (VisualEffectType) -> Unit,
+    onAddLibraryTrack: (com.actioncut.core.model.LibraryTrack) -> Unit,
     onAddKeyframe: () -> Unit,
     onClearKeyframes: () -> Unit,
     modifier: Modifier = Modifier,
@@ -101,7 +107,8 @@ fun ToolPanel(
             }
 
             if (selectedClip == null && tool != EditorTool.TEXT &&
-                tool != EditorTool.STICKER && tool != EditorTool.CANVAS
+                tool != EditorTool.STICKER && tool != EditorTool.CANVAS &&
+                tool != EditorTool.MUSIC
             ) {
                 Text(
                     "Select a clip on the timeline first.",
@@ -127,6 +134,7 @@ fun ToolPanel(
                 )
                 EditorTool.TEXT -> TextPanel(selectedClip?.text?.text ?: "", onAddText)
                 EditorTool.STICKER -> StickerPanel(onAddSticker)
+                EditorTool.MUSIC -> MusicPanel(onAddLibraryTrack)
                 EditorTool.CANVAS -> CanvasPanel(canvas, onFitMode, onBackgroundColor)
                 EditorTool.CROP -> CropPanel(selectedClip, onCrop)
                 EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
@@ -307,6 +315,54 @@ private fun StickerPanel(onAddSticker: (String) -> Unit) {
                     .clickable { haptic.tick(); onAddSticker(emoji) },
             )
         }
+    }
+}
+
+@Composable
+private fun MusicPanel(onAddLibraryTrack: (com.actioncut.core.model.LibraryTrack) -> Unit) {
+    val haptic = com.actioncut.core.designsystem.component.rememberHaptic()
+    var category by remember { mutableStateOf(AudioCategory.MUSIC) }
+    val tracks = if (category == AudioCategory.MUSIC) AudioLibrary.music else AudioLibrary.sfx
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectableChip("Music", category == AudioCategory.MUSIC, onClick = { category = AudioCategory.MUSIC })
+            SelectableChip("SFX", category == AudioCategory.SFX, onClick = { category = AudioCategory.SFX })
+        }
+        Column(
+            modifier = Modifier
+                .heightIn(max = 150.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            tracks.forEach { track ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { haptic.tick(); onAddLibraryTrack(track) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        track.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "+ Add",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+        Text(
+            "Royalty-free built-in tracks. Tap to add to the audio lane at the playhead.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

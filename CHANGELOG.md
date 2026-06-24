@@ -13,6 +13,20 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Built-in music & SFX library (InShot feature set, 5/5 — part 1)
+
+**Added: a royalty-free audio library.** New **Music** tool opens a picker with **Music**
+(Lo-Fi Chill, Upbeat Pop, Ambient Pad) and **SFX** (Whoosh, Pop, Click) tabs. Tapping a
+track drops it on the audio lane at the playhead, reusing the existing add-audio + export
+mixing path — so it plays in preview and is mixed into the export.
+
+**How it's licence-clean:** every track is **procedurally synthesized** (no third-party
+samples) by `tools/gen_audio.py` into `app/res/raw/*.wav`. At add-time the chosen asset is
+copied to the cache and resolved to a `file://` URI (`MediaRepository.resolveLibraryTrack`,
+looked up by name via `Resources.getIdentifier`, so `:core:data` needs no app-module `R`).
+
+> Next (5/5 part 2): voiceover recording from the mic.
+
 ### Transitions at export (InShot feature set, 4/5 — part 2)
 
 **Added: transitions now render on export.** Previously `transitionToNext` was stored but

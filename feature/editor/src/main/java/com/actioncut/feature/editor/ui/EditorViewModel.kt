@@ -33,6 +33,7 @@ class EditorViewModel @Inject constructor(
     private val getProject: GetProjectUseCase,
     private val saveProject: SaveProjectUseCase,
     private val resolveMedia: ResolveMediaUseCase,
+    private val resolveLibraryAudio: com.actioncut.core.domain.usecase.ResolveLibraryAudioUseCase,
     private val waveformExtractor: WaveformExtractor,
     val playerController: PlayerController,
 ) : ViewModel() {
@@ -227,6 +228,14 @@ class EditorViewModel @Inject constructor(
     fun toggleMuteSelected() = withSelected { id ->
         val muted = (currentClip(id)?.volume ?: 1f) == 0f
         mutate(structural = false) { TimelineEditor.setVolume(it, id, if (muted) 1f else 0f) }
+    }
+
+    /** Adds a bundled music/SFX library track as an audio clip at the playhead. */
+    fun addLibraryTrackAtPlayhead(track: com.actioncut.core.model.LibraryTrack) {
+        viewModelScope.launch {
+            val uri = resolveLibraryAudio(track.rawResName) ?: return@launch
+            addAudioAtPlayhead(uri)
+        }
     }
 
     /** Adds an emoji sticker overlay at the playhead on an OVERLAY lane. */

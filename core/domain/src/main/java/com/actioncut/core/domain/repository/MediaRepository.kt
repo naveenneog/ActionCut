@@ -34,4 +34,11 @@ interface MediaRepository {
      * [android.media.MediaMetadataRetriever]. Used when adding music in the editor.
      */
     suspend fun resolveMedia(uri: String): MediaItem?
+
+    /**
+     * Materialises a bundled music/SFX library track (`res/raw/<rawResName>`) into a
+     * playable `file://` URI, copying it into the cache on first use. Returns null if the
+     * named asset isn't bundled.
+     */
+    suspend fun resolveLibraryTrack(rawResName: String): String?
 }
