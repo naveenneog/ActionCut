@@ -13,6 +13,26 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Stylized effect shaders (InShot feature set, 4/5 — part 1)
+
+**Added: custom GL shader render path.** New `ShaderEffect` (`GlEffect`) + `ShaderProgram`
+(`BaseGlShaderProgram`) run inline GLSL fragment shaders over each frame via Media3's
+`GlProgram`, with a uniform contract (`uTexSampler`, `uIntensity`, `uTime`, `uResolution`).
+This unblocks the **stylized effects that were previously skipped at export**.
+
+**Added: 8 stylized effects** now render on export — **Glitch** (block displacement +
+chroma split), **RGB Split**, **Shake**, **Zoom Pulse**, **Film Grain**, **Light Leak**
+(animated screen-blend), **VHS** (wobble + scanlines + noise) and **Pixelate** (mosaic).
+Blur variants keep using stock Media3 `GaussianBlur`. Shaders are time-driven via
+`presentationTimeUs`, so animated looks move across the render.
+
+**Improved: Effects panel** is now a **toggle** — chips show which effects are applied to
+the selected clip and tapping again removes them (`toggleEffect`), with haptics.
+
+> Best-effort, honest caveat: GLSL is verified to compile against Media3's shader contract
+> but can only be validated visually on a device. Effects render at **export**; the live
+> preview still shows the unprocessed clip (authoritative render happens on export).
+
 ### Keyframe animation + speed curves (InShot feature set, 3/5)
 
 **Added: keyframe animation.** New **Keyframe** tool animates an overlay/PiP/text clip's

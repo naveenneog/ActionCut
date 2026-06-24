@@ -177,9 +177,11 @@ object EffectMapper {
         VisualEffectType.BOKEH,
         -> GaussianBlur(1f + effect.intensity * 8f)
         VisualEffectType.RADIAL_BLUR -> GaussianBlur(1f + effect.intensity * 6f)
-        // Stylized/retro looks (glitch, VHS, grain, pixelate, …) have no stock Media3
-        // effect; they're skipped at export until custom GL shaders are added.
-        else -> null
+        // Stylized/retro looks (glitch, RGB split, grain, VHS, pixelate, light leak,
+        // shake, zoom pulse) render through a custom GL fragment shader.
+        else -> Shaders.fragmentFor(effect.type)?.let { frag ->
+            ShaderEffect(frag, effect.intensity.coerceIn(0f, 1f))
+        }
     }
 }
 

@@ -379,6 +379,19 @@ class EditorViewModel @Inject constructor(
         mutate(structural = false) { TimelineEditor.addEffect(it, id, effect) }
     }
 
+    /** Adds [type] to the selected clip if absent, or removes it if already applied. */
+    fun toggleEffect(type: com.actioncut.core.model.VisualEffectType) = withSelected { id ->
+        val clip = currentClip(id) ?: return@withSelected
+        val existingIndex = clip.effects.indexOfFirst { it.type == type }
+        mutate(structural = false) { timeline ->
+            if (existingIndex >= 0) {
+                TimelineEditor.removeEffect(timeline, id, existingIndex)
+            } else {
+                TimelineEditor.addEffect(timeline, id, VisualEffect(type))
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ undo / redo
 
     fun undo() {

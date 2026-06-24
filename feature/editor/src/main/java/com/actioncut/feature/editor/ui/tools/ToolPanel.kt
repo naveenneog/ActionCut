@@ -50,7 +50,6 @@ import com.actioncut.core.model.SpeedPresets
 import com.actioncut.core.model.SpeedRamp
 import com.actioncut.core.model.Transition
 import com.actioncut.core.model.TransitionType
-import com.actioncut.core.model.VisualEffect
 import com.actioncut.core.model.VisualEffectType
 import com.actioncut.feature.editor.ui.EditorTool
 import kotlin.math.roundToInt
@@ -73,7 +72,7 @@ fun ToolPanel(
     onBackgroundColor: (Int) -> Unit,
     onCrop: (com.actioncut.core.model.CropRect) -> Unit,
     onTransition: (Transition?) -> Unit,
-    onAddEffect: (VisualEffect) -> Unit,
+    onToggleEffect: (VisualEffectType) -> Unit,
     onAddKeyframe: () -> Unit,
     onClearKeyframes: () -> Unit,
     modifier: Modifier = Modifier,
@@ -131,7 +130,10 @@ fun ToolPanel(
                 EditorTool.CANVAS -> CanvasPanel(canvas, onFitMode, onBackgroundColor)
                 EditorTool.CROP -> CropPanel(selectedClip, onCrop)
                 EditorTool.TRANSITIONS -> TransitionPanel(selectedClip?.transitionToNext, onTransition)
-                EditorTool.EFFECTS -> EffectsPanel(onAddEffect)
+                EditorTool.EFFECTS -> EffectsPanel(
+                    selectedClip?.effects?.map { it.type }?.toSet() ?: emptySet(),
+                    onToggleEffect,
+                )
                 EditorTool.KEYFRAME -> KeyframePanel(selectedClip, onAddKeyframe, onClearKeyframes)
                 else -> Unit
             }
@@ -261,15 +263,23 @@ private fun TransitionPanel(current: Transition?, onTransition: (Transition?) ->
 }
 
 @Composable
-private fun EffectsPanel(onAddEffect: (VisualEffect) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
-        items(VisualEffectType.entries.toList()) { type ->
-            SelectableChip(
-                label = type.displayName,
-                selected = false,
-                onClick = { onAddEffect(VisualEffect(type)) },
-            )
+private fun EffectsPanel(applied: Set<VisualEffectType>, onToggleEffect: (VisualEffectType) -> Unit) {
+    val haptic = com.actioncut.core.designsystem.component.rememberHaptic()
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+            items(VisualEffectType.entries.toList()) { type ->
+                SelectableChip(
+                    label = type.displayName,
+                    selected = type in applied,
+                    onClick = { haptic.tick(); onToggleEffect(type) },
+                )
+            }
         }
+        Text(
+            "Tap to add or remove. Effects render on export.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

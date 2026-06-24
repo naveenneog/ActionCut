@@ -166,7 +166,7 @@ fun EditorScreen(
                     onBackgroundColor = viewModel::setBackgroundColor,
                     onCrop = { rect -> uiState.selectedClipId?.let { viewModel.setCrop(it, rect) } },
                     onTransition = viewModel::setTransition,
-                    onAddEffect = viewModel::addEffect,
+                    onToggleEffect = viewModel::toggleEffect,
                     onAddKeyframe = viewModel::addKeyframeAtPlayhead,
                     onClearKeyframes = viewModel::clearKeyframes,
                 )
