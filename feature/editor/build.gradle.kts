@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// Compose UI tests (Robolectric) rely on ui-test-manifest, which is only merged into the
+// debug variant. Run unit tests on debug only; release unit tests add no coverage here.
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { variant ->
+        (variant as? com.android.build.api.variant.HasUnitTestBuilder)?.enableUnitTest = false
+    }
+}
+
 android {
     namespace = "com.actioncut.feature.editor"
     compileSdk = 35
@@ -23,6 +31,12 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all { it.systemProperty("robolectric.logging", "stdout") }
+        }
     }
     lint {
         // Editor preview uses Media3 PlayerView/AspectRatioFrameLayout (opt-in APIs).
@@ -53,8 +67,12 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
 }

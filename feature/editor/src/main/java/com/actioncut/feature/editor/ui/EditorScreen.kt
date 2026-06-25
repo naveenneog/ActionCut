@@ -185,17 +185,27 @@ fun EditorScreen(
                     onClearKeyframes = viewModel::clearKeyframes,
                 )
             } else {
-                EditorToolbar(
-                    activeTool = uiState.activeTool,
-                    onToolSelected = { tool ->
-                        when (tool) {
-                            EditorTool.AUDIO -> audioPicker.launch(arrayOf("audio/*"))
-                            EditorTool.PIP -> videoPicker.launch(arrayOf("video/*"))
-                            else -> viewModel.setActiveTool(tool)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxWidth()) {
+                    if (uiState.selectedClip != null) {
+                        SelectedClipBar(
+                            onSplit = viewModel::splitAtPlayhead,
+                            onDuplicate = viewModel::duplicateSelected,
+                            onDelete = viewModel::deleteSelected,
+                            onDeselect = { viewModel.selectClip(null) },
+                        )
+                    }
+                    EditorToolbar(
+                        activeTool = uiState.activeTool,
+                        onToolSelected = { tool ->
+                            when (tool) {
+                                EditorTool.AUDIO -> audioPicker.launch(arrayOf("audio/*"))
+                                EditorTool.PIP -> videoPicker.launch(arrayOf("video/*"))
+                                else -> viewModel.setActiveTool(tool)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }

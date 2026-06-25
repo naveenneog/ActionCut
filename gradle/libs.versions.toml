@@ -44,6 +44,7 @@ accompanistPermissions = "0.36.0"
 junit = "4.13.2"
 mockk = "1.13.13"
 turbine = "1.2.0"
+robolectric = "4.14.1"
 androidxJunit = "1.2.1"
 espresso = "3.6.1"
 coroutinesTest = "1.9.0"
@@ -112,6 +113,7 @@ accompanist-permissions = { group = "com.google.accompanist", name = "accompanis
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }

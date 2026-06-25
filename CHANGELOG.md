@@ -13,6 +13,31 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Real automated UI tests + bug fixes + clapperboard logo
+
+**Added: a real, runnable test method.** Introduced **Robolectric + Jetpack Compose UI
+tests** (open-source, run on the JVM in `testDebugUnitTest` — no emulator/MCP needed, so they
+run in CI too) plus **mockk + coroutines-test ViewModel tests**. New coverage:
+- `EditorTimelineUiTest` — renders the real timeline and asserts **tapping a clip selects it**.
+- `SelectedClipBarTest` — asserts the new **Delete/Duplicate** actions fire.
+- `EditorViewModelTest` — asserts a clip is auto-selected on load, **delete removes** the
+  selected clip, and **duplicate adds a copy**.
+Release-variant unit tests are disabled for `:feature:editor` (the Compose test manifest is
+debug-only); debug unit tests give full coverage.
+
+**Fixed: "no delete option after adding a clip".** Selection worked, but Delete was buried at
+the end of the long scrolling toolbar. Added an always-visible **contextual clip action bar**
+(Split · Duplicate · Delete · Done) that appears whenever a clip is selected — a discoverable,
+one-tap delete. Added a `duplicateSelected()` action.
+
+**Fixed: clip-dependent tools silently doing nothing.** Newly added **audio/music/voiceover**
+clips are now **auto-selected** (video/PiP/stickers already were), so the editing tools always
+have a target the moment you add media.
+
+**Changed: app logo.** Replaced the play-mark launcher icon with a **film clapperboard** (a
+hinged, striped clapper over a slate with a brand play triangle) — fitting "ActionCut" — and a
+matching monochrome themed-icon silhouette.
+
 ### Voiceover recording (InShot feature set, 5/5 — part 2 · completes the set)
 
 **Added: record a voiceover from the mic.** New **Voiceover** tool shows a record/stop

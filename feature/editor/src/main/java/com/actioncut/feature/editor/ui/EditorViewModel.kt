@@ -154,6 +154,18 @@ class EditorViewModel @Inject constructor(
         _uiState.update { it.copy(selectedClipId = null) }
     }
 
+    /** Duplicates the selected clip, placing the copy right after it on the same lane. */
+    fun duplicateSelected() = withSelected { id ->
+        val (track, clip) = TimelineEditor.findClip(_uiState.value.timeline, id) ?: return@withSelected
+        val copy = clip.copy(
+            id = java.util.UUID.randomUUID().toString(),
+            timelineStartMs = clip.timelineEndMs,
+            timelineEndMs = clip.timelineEndMs + clip.timelineDurationMs,
+        )
+        mutate(structural = true) { TimelineEditor.insertClip(it, track.id, copy) }
+        _uiState.update { it.copy(selectedClipId = copy.id) }
+    }
+
     fun trimStart(clipId: String, newStartMs: Long) =
         mutate(structural = true) { TimelineEditor.trimClipStart(it, clipId, newStartMs) }
 
@@ -222,6 +234,7 @@ class EditorViewModel @Inject constructor(
                     TimelineEditor.insertClip(withTrack, trackId, clip)
                 }
             }
+            _uiState.update { it.copy(selectedClipId = clip.id) }
         }
     }
 

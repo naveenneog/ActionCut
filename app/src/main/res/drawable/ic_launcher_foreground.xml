@@ -4,20 +4,41 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Play triangle with a violet -> mint gradient -->
-    <path android:pathData="M44,37 L44,71 Q44,74 47,72 L75,56 Q78,54 75,52 L47,36 Q44,34 44,37 Z">
+
+    <!-- ActionCut clapperboard: a film slate (the "Action!" / "Cut!" clapper). -->
+
+    <!-- Slate / board body (light, to pop on the dark violet canvas) -->
+    <path
+        android:fillColor="#FFF4F4F8"
+        android:pathData="M22,50 L82,50 A5,5 0 0 1 87,55 L87,80 A5,5 0 0 1 82,85 L22,85 A5,5 0 0 1 17,80 L17,55 A5,5 0 0 1 22,50 Z" />
+
+    <!-- Brand play triangle on the slate (violet -> mint) ties it to video editing -->
+    <path android:pathData="M47,60 L47,76 Q47,78 49,77 L64,69 Q66,68 64,67 L49,59 Q47,58 47,60 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="40" android:startY="36"
-                android:endX="78" android:endY="72"
+                android:startX="46" android:startY="59"
+                android:endX="65" android:endY="77"
                 android:startColor="#FF7C5CFF"
                 android:endColor="#FF00E5C0" />
         </aapt:attr>
     </path>
-    <!-- "Cut" split through the play mark (nods to the app's core: split/trim) -->
-    <path
-        android:fillColor="#FF0B0B14"
-        android:pathData="M55.5,43 L59,43 L59,65 L55.5,65 Z" />
+
+    <!-- Clapper stick bar, hinged bottom-left and tilted open -->
+    <group
+        android:name="clapper"
+        android:rotation="-9"
+        android:pivotX="22"
+        android:pivotY="47">
+        <!-- Dark bar background -->
+        <path
+            android:fillColor="#FF15151F"
+            android:pathData="M20,33 L82,33 A3,3 0 0 1 85,36 L85,47 L17,47 L17,36 A3,3 0 0 1 20,33 Z" />
+        <!-- White diagonal "sticks" -->
+        <path android:fillColor="#FFF4F4F8" android:pathData="M21,47 L28,47 L34,33 L27,33 Z" />
+        <path android:fillColor="#FFF4F4F8" android:pathData="M37,47 L44,47 L50,33 L43,33 Z" />
+        <path android:fillColor="#FFF4F4F8" android:pathData="M53,47 L60,47 L66,33 L59,33 Z" />
+        <path android:fillColor="#FFF4F4F8" android:pathData="M69,47 L76,47 L82,33 L75,33 Z" />
+    </group>
 </vector>
 

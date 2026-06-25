@@ -3,8 +3,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Single-colour silhouette for Android 13+ themed icons -->
+    <!-- Single-colour clapperboard silhouette for Android 13+ themed icons -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M44,37 L44,71 Q44,74 47,72 L75,56 Q78,54 75,52 L47,36 Q44,34 44,37 Z" />
+        android:pathData="M22,50 L82,50 A5,5 0 0 1 87,55 L87,80 A5,5 0 0 1 82,85 L22,85 A5,5 0 0 1 17,80 L17,55 A5,5 0 0 1 22,50 Z" />
+    <group
+        android:rotation="-9"
+        android:pivotX="22"
+        android:pivotY="47">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M20,33 L82,33 A3,3 0 0 1 85,36 L85,47 L17,47 L17,36 A3,3 0 0 1 20,33 Z" />
+    </group>
 </vector>
