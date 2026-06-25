@@ -13,6 +13,18 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Full-UI verification on emulator + real GitHub Pages screenshots
+
+Drove every major feature through the app on a booted emulator and found no further functional
+bugs: project library + persistence, media import, cumulative playback, the contextual clip
+bar (split/duplicate/delete), Filters, **Text overlays** (live in the preview), Volume, and
+**Effects**. Exported a clip carrying a **Vivid LUT + Glitch shader + text overlay together**
+(the exact combination that used to crash) — it now renders and saves to the gallery, then
+opens the system share sheet.
+
+Replaced the landing-page mockups with **real Android screenshots** (home, editor with a text
+overlay, effects panel, export presets, save-to-gallery success) in `docs/screenshots/`.
+
 ### Fixed: play didn't restart after reaching the end (found by driving the real UI)
 
 Drove the full editor flow on the emulator (New Project → import → play → delete → export to
