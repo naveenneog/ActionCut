@@ -218,6 +218,7 @@ class PlayerController @Inject constructor(
     }
 
     fun play() {
+        if (player.playbackState == Player.STATE_ENDED) seekTo(0)
         player.play()
     }
 
@@ -226,7 +227,14 @@ class PlayerController @Inject constructor(
     }
 
     fun togglePlayPause() {
-        if (player.isPlaying) player.pause() else player.play()
+        if (player.isPlaying) {
+            player.pause()
+        } else {
+            // ExoPlayer's play() does not auto-restart from a finished playlist, so a tap
+            // on play after the preview reaches the end would do nothing — rewind first.
+            if (player.playbackState == Player.STATE_ENDED) seekTo(0)
+            player.play()
+        }
     }
 
     fun seekTo(positionMs: Long) {

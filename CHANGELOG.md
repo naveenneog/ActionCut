@@ -13,6 +13,14 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Fixed: play didn't restart after reaching the end (found by driving the real UI)
+
+Drove the full editor flow on the emulator (New Project → import → play → delete → export to
+gallery → share — all working). While testing playback I hit a real bug: once the preview
+played to the end, tapping **Play** did nothing, because ExoPlayer's `play()` doesn't
+auto-rewind a finished playlist. `PlayerController.play()`/`togglePlayPause()` now seek to 0
+first when the player is in the ENDED state, so play restarts from the beginning.
+
 ### Fixed two real runtime bugs — verified on a booted Android emulator
 
 I stood up an actual Android emulator (Android 34, x86_64) and added **on-device
