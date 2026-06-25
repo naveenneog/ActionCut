@@ -46,6 +46,7 @@ import kotlin.math.roundToInt
  */
 class Media3VideoExporter @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val reverser: com.actioncut.core.media.reverse.VideoReverser,
 ) : VideoExporter {
 
     override fun export(
@@ -53,13 +54,30 @@ class Media3VideoExporter @Inject constructor(
         settings: ExportSettings,
         outputFilePath: String,
     ): Flow<ExportState> = callbackFlow {
-        val clips = project.timeline.videoTracks.firstOrNull()?.clips.orEmpty()
+        val rawClips = project.timeline.videoTracks.firstOrNull()?.clips.orEmpty()
             .filter { it.mediaUri != null }
 
-        if (clips.isEmpty()) {
+        if (rawClips.isEmpty()) {
             trySend(ExportState.Failed("Timeline has no exportable video clips"))
             close()
             return@callbackFlow
+        }
+
+        // Reverse is not a Media3 effect: pre-process reversed clips into a temp file off the
+        // main thread, then treat them as ordinary forward clips below.
+        val clips = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            rawClips.map { clip ->
+                if (clip.isReversed && clip.type == ClipType.VIDEO && clip.mediaUri != null) {
+                    val reversedUri = reverser.reverse(clip.mediaUri!!, clip.sourceInMs, clip.sourceOutMs)
+                    if (reversedUri != null) {
+                        clip.copy(mediaUri = reversedUri, isReversed = false, sourceInMs = 0L, sourceOutMs = 0L)
+                    } else {
+                        clip
+                    }
+                } else {
+                    clip
+                }
+            }
         }
 
         // Preset support: an explicit aspect override (Instagram/TikTok/…) wins over the

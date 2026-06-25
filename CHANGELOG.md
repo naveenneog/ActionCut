@@ -13,6 +13,19 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Reverse now actually reverses (it was a silent no-op)
+
+The **Reverse** tool did nothing on export — `isReversed` was only handled by the long-dead
+FFmpeg builder, and Media3 Transformer has no temporal reverse. Added a real `VideoReverser`
+(`core/media/.../reverse/`): it extracts the clip's frames newest→oldest with
+`MediaMetadataRetriever` and re-encodes them through a `MediaCodec` input Surface (a tiny EGL
++ GLES2 bitmap blit) into a temp MP4. The exporter pre-processes reversed clips off the main
+thread and then treats them as ordinary forward clips. Audio is dropped from reversed clips.
+
+Verified on the emulator by `VideoReverserTest`, which asserts the reversed clip's **first**
+frame matches the source's **last** frame (the test asset animates colour over time, so this
+is decisive). The full on-device media suite is now **22 tests**.
+
 ### Fixed: export failed with mixed audio/no-audio clips ("track of type 1")
 
 A real project where a clip **without** an audio track (an image, or a muted clip) is

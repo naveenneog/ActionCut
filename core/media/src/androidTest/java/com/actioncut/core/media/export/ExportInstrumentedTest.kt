@@ -80,7 +80,7 @@ class ExportInstrumentedTest {
 
     @Test
     fun exportsTwoClipTimelineToPlayableFile() = runBlocking {
-        val exporter = Media3VideoExporter(appContext)
+        val exporter = Media3VideoExporter(appContext, com.actioncut.core.media.reverse.VideoReverser(appContext))
         val out = File(appContext.cacheDir, "export_out.mp4")
         if (out.exists()) out.delete()
 
@@ -102,7 +102,7 @@ class ExportInstrumentedTest {
         val out = File(appContext.cacheDir, "export_$tag.mp4")
         if (out.exists()) out.delete()
         val terminal = withTimeout(120_000) {
-            Media3VideoExporter(appContext).export(project, settings, out.absolutePath)
+            Media3VideoExporter(appContext, com.actioncut.core.media.reverse.VideoReverser(appContext)).export(project, settings, out.absolutePath)
                 .first { it is ExportState.Completed || it is ExportState.Failed }
         }
         if (terminal is ExportState.Failed) throw AssertionError("[$tag] Export failed: ${terminal.message}")
