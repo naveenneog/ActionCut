@@ -139,7 +139,14 @@ class Media3VideoExporter @Inject constructor(
                             result: ExportResult,
                             exception: ExportException,
                         ) {
-                            trySend(ExportState.Failed(exception.message ?: "Export failed"))
+                            // Surface the *root* cause (e.g. the GL shader compile log),
+                            // not just the opaque top-level "Video frame processing error".
+                            val chain = generateSequence(exception as Throwable) { it.cause }
+                                .mapNotNull { it.message?.trim() }
+                                .filter { it.isNotEmpty() }
+                                .distinct()
+                                .toList()
+                            trySend(ExportState.Failed(chain.lastOrNull() ?: chain.joinToString(" <- ").ifEmpty { "Export failed" }))
                             close()
                         }
                     })

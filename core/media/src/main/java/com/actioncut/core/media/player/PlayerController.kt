@@ -61,6 +61,14 @@ class PlayerController @Inject constructor(
     /** Per-playlist-item volume (0..1 for ExoPlayer), kept in sync with the timeline. */
     private var clipVolumes: List<Float> = emptyList()
 
+    // Cumulative *timeline* start offset (ms) of each preview item per lane, so we can map
+    // ExoPlayer's per-item position to an absolute timeline position (and back). Without
+    // this the playhead snaps to 0 at every clip boundary (the "jumps back to first" bug).
+    private var videoStartsMs: List<Long> = emptyList()
+    private var audioStartsMs: List<Long> = emptyList()
+    private var pipStartsMs: List<Long> = emptyList()
+    private var totalPreviewMs: Long = 0L
+
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             mirrorSecondaryPlayers(isPlaying)
@@ -92,6 +100,8 @@ class PlayerController @Inject constructor(
     fun setTimeline(timeline: Timeline) {
         val clips = previewClips(timeline)
         clipVolumes = clips.map { it.volume }
+        videoStartsMs = cumulativeStarts(clips.map { previewDurationMs(it) })
+        totalPreviewMs = (videoStartsMs.lastOrNull() ?: 0L) + (clips.lastOrNull()?.let { previewDurationMs(it) } ?: 0L)
         val items = clips.map { clip ->
             val builder = MediaItem.Builder().setUri(clip.mediaUri)
             if (clip.type == ClipType.IMAGE) {
@@ -114,68 +124,77 @@ class PlayerController @Inject constructor(
         applyCurrentVolume()
 
         // Build the audio-lane playlist for the secondary player.
-        val audioItems = audioItems(timeline)
-        audioPlayer.setMediaItems(audioItems)
+        val audioClips = audioClipsOf(timeline)
+        audioStartsMs = cumulativeStarts(audioClips.map { previewDurationMs(it) })
+        audioPlayer.setMediaItems(audioClips.map { it.toClippedMediaItem() })
         audioPlayer.prepare()
 
         // Build the PiP playlist (overlay video clips).
-        val pipItems = pipItems(timeline)
-        pipPlayer.setMediaItems(pipItems)
+        val pipClips = pipClipsOf(timeline)
+        pipStartsMs = cumulativeStarts(pipClips.map { previewDurationMs(it) })
+        pipPlayer.setMediaItems(pipClips.map { it.toClippedMediaItem() })
         pipPlayer.prepare()
 
         pushState()
     }
 
-    private fun pipItems(timeline: Timeline): List<MediaItem> =
+    /** Preview footprint (ms) of a clip on the timeline — used to map per-item positions. */
+    private fun previewDurationMs(clip: Clip): Long = clip.timelineDurationMs.coerceAtLeast(1L)
+
+    private fun cumulativeStarts(durations: List<Long>): List<Long> {
+        var acc = 0L
+        return durations.map { val start = acc; acc += it; start }
+    }
+
+    /** Absolute timeline position (ms) of the master video player across the whole playlist. */
+    fun masterPositionMs(): Long {
+        if (player.mediaItemCount == 0) return 0L
+        val base = videoStartsMs.getOrElse(player.currentMediaItemIndex) { 0L }
+        return (base + player.currentPosition.coerceAtLeast(0L)).coerceAtLeast(0L)
+    }
+
+    /** Seeks [p] to an absolute timeline position, resolving the right playlist item. */
+    private fun seekAbsolute(p: ExoPlayer, starts: List<Long>, absMs: Long) {
+        if (p.mediaItemCount == 0) return
+        var idx = 0
+        for (i in 0 until p.mediaItemCount) {
+            if (absMs >= (starts.getOrElse(i) { 0L })) idx = i else break
+        }
+        val within = (absMs - starts.getOrElse(idx) { 0L }).coerceAtLeast(0L)
+        p.seekTo(idx, within)
+    }
+
+    private fun Clip.toClippedMediaItem(): MediaItem =
+        MediaItem.Builder()
+            .setUri(mediaUri)
+            .setClippingConfiguration(
+                MediaItem.ClippingConfiguration.Builder()
+                    .setStartPositionMs(sourceInMs)
+                    .setEndPositionMs(if (sourceOutMs > sourceInMs) sourceOutMs else C.TIME_END_OF_SOURCE)
+                    .build(),
+            )
+            .build()
+
+    private fun audioClipsOf(timeline: Timeline): List<Clip> =
+        timeline.audioTracks
+            .flatMap { it.clips }
+            .filter { it.mediaUri != null && it.volume > 0f }
+            .sortedBy { it.timelineStartMs }
+
+    private fun pipClipsOf(timeline: Timeline): List<Clip> =
         timeline.tracks
             .filter { it.type == com.actioncut.core.model.TrackType.OVERLAY }
             .flatMap { it.clips }
             .filter { it.mediaUri != null && it.type == ClipType.VIDEO }
             .sortedBy { it.timelineStartMs }
-            .map { clip ->
-                MediaItem.Builder()
-                    .setUri(clip.mediaUri)
-                    .setClippingConfiguration(
-                        MediaItem.ClippingConfiguration.Builder()
-                            .setStartPositionMs(clip.sourceInMs)
-                            .setEndPositionMs(
-                                if (clip.sourceOutMs > clip.sourceInMs) clip.sourceOutMs
-                                else C.TIME_END_OF_SOURCE,
-                            )
-                            .build(),
-                    )
-                    .build()
-            }
-
-    private fun audioItems(timeline: Timeline): List<MediaItem> =
-        timeline.audioTracks
-            .flatMap { it.clips }
-            .filter { it.mediaUri != null && it.volume > 0f }
-            .sortedBy { it.timelineStartMs }
-            .map { clip ->
-                MediaItem.Builder()
-                    .setUri(clip.mediaUri)
-                    .setClippingConfiguration(
-                        MediaItem.ClippingConfiguration.Builder()
-                            .setStartPositionMs(clip.sourceInMs)
-                            .setEndPositionMs(
-                                if (clip.sourceOutMs > clip.sourceInMs) clip.sourceOutMs
-                                else C.TIME_END_OF_SOURCE,
-                            )
-                            .build(),
-                    )
-                    .build()
-            }
 
     private fun mirrorSecondaryPlayers(isPlaying: Boolean) {
-        listOf(audioPlayer, pipPlayer).forEach { p ->
-            if (p.mediaItemCount == 0) return@forEach
-            if (isPlaying) {
-                p.seekTo(player.currentPosition.coerceAtLeast(0))
-                p.play()
-            } else {
-                p.pause()
-            }
+        val master = masterPositionMs()
+        if (audioPlayer.mediaItemCount > 0) {
+            if (isPlaying) { seekAbsolute(audioPlayer, audioStartsMs, master); audioPlayer.play() } else audioPlayer.pause()
+        }
+        if (pipPlayer.mediaItemCount > 0) {
+            if (isPlaying) { seekAbsolute(pipPlayer, pipStartsMs, master); pipPlayer.play() } else pipPlayer.pause()
         }
     }
 
@@ -212,9 +231,9 @@ class PlayerController @Inject constructor(
 
     fun seekTo(positionMs: Long) {
         val pos = positionMs.coerceAtLeast(0)
-        player.seekTo(pos)
-        if (audioPlayer.mediaItemCount > 0) audioPlayer.seekTo(pos)
-        if (pipPlayer.mediaItemCount > 0) pipPlayer.seekTo(pos)
+        seekAbsolute(player, videoStartsMs, pos)
+        seekAbsolute(audioPlayer, audioStartsMs, pos)
+        seekAbsolute(pipPlayer, pipStartsMs, pos)
         pushState()
     }
 
@@ -225,17 +244,21 @@ class PlayerController @Inject constructor(
         pipPlayer.playbackParameters = params
     }
 
-    /** Emits the live playhead position while playing (collected on the main thread). */
+    /** Emits the live *absolute* playhead position while playing (collected on the main thread). */
     fun positionFlow(intervalMs: Long = 33L): Flow<Long> = flow {
         while (true) {
-            // Keep the secondary lanes time-aligned with the master video player.
-            val master = player.currentPosition.coerceAtLeast(0)
-            listOf(audioPlayer, pipPlayer).forEach { p ->
-                if (p.isPlaying && kotlin.math.abs(p.currentPosition - master) > 300) {
-                    p.seekTo(master)
-                }
+            val master = masterPositionMs()
+            // Keep the secondary lanes time-aligned with the master, comparing *absolute*
+            // positions so a video clip boundary doesn't yank the audio back to its start.
+            if (audioPlayer.isPlaying) {
+                val audioAbs = audioStartsMs.getOrElse(audioPlayer.currentMediaItemIndex) { 0L } + audioPlayer.currentPosition
+                if (kotlin.math.abs(audioAbs - master) > 300) seekAbsolute(audioPlayer, audioStartsMs, master)
             }
-            emit(player.currentPosition)
+            if (pipPlayer.isPlaying) {
+                val pipAbs = pipStartsMs.getOrElse(pipPlayer.currentMediaItemIndex) { 0L } + pipPlayer.currentPosition
+                if (kotlin.math.abs(pipAbs - master) > 300) seekAbsolute(pipPlayer, pipStartsMs, master)
+            }
+            emit(master)
             delay(intervalMs)
         }
     }
@@ -251,8 +274,10 @@ class PlayerController @Inject constructor(
         _state.value = PlaybackState(
             isPlaying = player.isPlaying,
             isBuffering = player.playbackState == Player.STATE_BUFFERING,
-            positionMs = player.currentPosition.coerceAtLeast(0),
-            durationMs = player.duration.let { if (it == C.TIME_UNSET) 0L else it.coerceAtLeast(0) },
+            positionMs = masterPositionMs(),
+            durationMs = if (totalPreviewMs > 0L) totalPreviewMs else {
+                player.duration.let { if (it == C.TIME_UNSET) 0L else it.coerceAtLeast(0) }
+            },
             isEnded = player.playbackState == Player.STATE_ENDED,
         )
     }

@@ -96,10 +96,10 @@ private class TransitionProgram(
         try {
             program.use()
             program.setSamplerTexIdUniform("uTexSampler", inputTexId, /* texUnitIndex= */ 0)
-            program.setFloatUniform("uAlpha", alpha)
-            program.setFloatUniform("uScale", scale)
-            program.setFloatUniform("uBlur", blur)
-            program.setFloatsUniform("uResolution", floatArrayOf(width.toFloat(), height.toFloat()))
+            program.setFloatsUniformIfPresent("uAlpha", floatArrayOf(alpha))
+            program.setFloatsUniformIfPresent("uScale", floatArrayOf(scale))
+            program.setFloatsUniformIfPresent("uBlur", floatArrayOf(blur))
+            program.setFloatsUniformIfPresent("uResolution", floatArrayOf(width.toFloat(), height.toFloat()))
             program.bindAttributesAndUniforms()
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, /* first= */ 0, /* count= */ 4)
         } catch (e: GlUtil.GlException) {

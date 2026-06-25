@@ -13,6 +13,30 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Fixed two real runtime bugs — verified on a booted Android emulator
+
+I stood up an actual Android emulator (Android 34, x86_64) and added **on-device
+instrumented tests** (`core/media/src/androidTest`) that exercise the real ExoPlayer +
+Media3 Transformer — the layer unit/Robolectric tests can't reach. They caught both bugs.
+
+**Fixed: playback jumped back to the first clip / restarted audio.** `PlayerController`
+treated ExoPlayer's **per-media-item** `currentPosition` as the absolute timeline position,
+so at every clip boundary the playhead snapped to 0 and the audio lane was drift-corrected
+back to its start. Now the controller maintains cumulative per-lane start offsets and reports
+an **absolute** playhead (`masterPositionMs`), seeks/scrubs map to the right playlist item,
+and audio/PiP drift-correction compares absolute positions. Also guarded the timeline so the
+playback-follow scroll can't feed back as a scrub. `PlaybackInstrumentedTest` plays a 2-clip
+timeline and asserts the playhead advances *past* clip 1.
+
+**Fixed: export failed ("Video frame processing error").** Stylized effects whose GLSL didn't
+reference every uniform (Glitch ignores `uResolution`, Pixelate ignores `uTime`) crashed with
+a `NullPointerException`, because Media3's `GlProgram` rejects setting a uniform the shader
+compiler optimized away. `ShaderEffect`/`TransitionEffect` now set those uniforms with
+`setFloatsUniformIfPresent`. `ExportInstrumentedTest` runs the real Transformer over two MP4s
+across 8 scenarios (basic, VHS, glitch, pixelate, glitch+pixelate, transition, text overlay,
+1080p) — all green. Export errors now also surface the **root-cause** message instead of an
+opaque one.
+
 ### Real automated UI tests + bug fixes + clapperboard logo
 
 **Added: a real, runnable test method.** Introduced **Robolectric + Jetpack Compose UI

@@ -91,11 +91,12 @@ fun EditorTimeline(
     fun msToPxF(ms: Long): Float = ms / 1000f * pxPerSecond
     fun pxToMs(px: Int): Long = (px / pxPerSecond * 1000f).toLong()
 
-    // User scroll -> seek.
+    // User scroll -> seek. Suppressed while playing, where the playhead drives the scroll
+    // (otherwise the follow-scroll feeds back as a scrub and fights playback).
     LaunchedEffect(scrollState, pxPerSecond, durationMs) {
         snapshotFlow { scrollState.value to scrollState.isScrollInProgress }
             .collect { (value, inProgress) ->
-                if (inProgress) onScrub(pxToMs(value).coerceIn(0, durationMs))
+                if (inProgress && !isPlaying) onScrub(pxToMs(value).coerceIn(0, durationMs))
             }
     }
     // Playhead (playback / edits) -> follow scroll, unless the user is actively scrolling.

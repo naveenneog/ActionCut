@@ -63,9 +63,12 @@ private class ShaderProgram(
         try {
             program.use()
             program.setSamplerTexIdUniform("uTexSampler", inputTexId, /* texUnitIndex= */ 0)
-            program.setFloatUniform("uIntensity", intensity.coerceIn(0f, 1f))
-            program.setFloatUniform("uTime", (presentationTimeUs / 1_000_000.0).toFloat())
-            program.setFloatsUniform("uResolution", floatArrayOf(width.toFloat(), height.toFloat()))
+            // Use *IfPresent for the optional uniforms: a shader that doesn't reference one
+            // (e.g. GLITCH ignores uResolution, PIXELATE ignores uTime) has it optimized out
+            // by the GLSL compiler, and setting an absent uniform throws inside GlProgram.
+            program.setFloatsUniformIfPresent("uIntensity", floatArrayOf(intensity.coerceIn(0f, 1f)))
+            program.setFloatsUniformIfPresent("uTime", floatArrayOf((presentationTimeUs / 1_000_000.0).toFloat()))
+            program.setFloatsUniformIfPresent("uResolution", floatArrayOf(width.toFloat(), height.toFloat()))
             program.bindAttributesAndUniforms()
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, /* first= */ 0, /* count= */ 4)
         } catch (e: GlUtil.GlException) {
