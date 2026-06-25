@@ -121,6 +121,10 @@ class Media3VideoExporter @Inject constructor(
                 }
 
                 val compositionBuilder = Composition.Builder(sequences)
+                    // Force a (silent) audio track so a sequence that mixes clips without
+                    // audio (images, muted clips) and clips with audio doesn't fail with
+                    // "preceding MediaItem does not contain any track of type 1".
+                    .experimentalSetForceAudioTrack(true)
                 if (pipClips.isNotEmpty()) {
                     compositionBuilder.setVideoCompositorSettings(pipCompositorSettings(pipClips.first()))
                 }

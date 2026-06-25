@@ -13,6 +13,21 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### Fixed: export failed with mixed audio/no-audio clips ("track of type 1")
+
+A real project where a clip **without** an audio track (an image, or a muted clip) is
+followed by a clip **with** audio made Media3 Transformer fail with *"The preceding MediaItem
+does not contain any track of type 1…"*. The exporter now sets
+`Composition.Builder.experimentalSetForceAudioTrack(true)`, which generates a silent audio
+track for items that lack one so the whole sequence is consistent.
+
+My earlier export tests missed this because screen-recorded test clips have **no audio track
+at all** (so every item matched). Added a PyAV-generated **video-with-audio** asset + a still
+image (`tools/gen_av_assets.py`) and grew `ExportInstrumentedTest` to **20 on-device cases**
+that run the real Transformer: the three mixed-audio orders, plus speed, speed ramps, PiP,
+a music lane, rotate, crop, colour adjustments, reverse, and an "everything combined" export.
+All green on the emulator.
+
 ### Full-UI verification on emulator + real GitHub Pages screenshots
 
 Drove every major feature through the app on a booted emulator and found no further functional

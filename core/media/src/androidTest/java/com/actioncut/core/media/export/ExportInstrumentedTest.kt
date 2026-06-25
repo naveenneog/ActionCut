@@ -7,14 +7,18 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.actioncut.core.model.Clip
 import com.actioncut.core.model.ClipType
+import com.actioncut.core.model.ColorAdjustments
+import com.actioncut.core.model.CropRect
 import com.actioncut.core.model.ExportSettings
 import com.actioncut.core.model.ExportState
 import com.actioncut.core.model.Project
 import com.actioncut.core.model.Resolution
+import com.actioncut.core.model.SpeedRamp
 import com.actioncut.core.model.TextProperties
 import com.actioncut.core.model.Timeline
 import com.actioncut.core.model.Track
 import com.actioncut.core.model.TrackType
+import com.actioncut.core.model.Transform
 import com.actioncut.core.model.Transition
 import com.actioncut.core.model.TransitionType
 import com.actioncut.core.model.VisualEffect
@@ -114,6 +118,33 @@ class ExportInstrumentedTest {
 
     private fun projectOf(vararg tracks: Track) = Project(id = "p", name = "T", timeline = Timeline(tracks = tracks.toList()))
 
+    // --- Mixed audio-track scenarios (the "track of type 1" export error) ---
+
+    @Test
+    fun exportsImageThenVideoWithAudio() {
+        val image = Clip("img", ClipType.IMAGE, copyAsset("still.png"), 0L, 1_500L, 0L, 0L)
+        val av = copyAsset("clip_audio.mp4"); val d = durationMs(av)
+        val video = Clip("vid", ClipType.VIDEO, av, 1_500L, 1_500L + d, 0L, d)
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(image, video))), "img_then_av")
+    }
+
+    @Test
+    fun exportsMutedVideoThenAudioVideo() {
+        val av = copyAsset("clip_audio.mp4"); val d = durationMs(av)
+        val muted = Clip("m", ClipType.VIDEO, av, 0L, d, 0L, d, volume = 0f)
+        val loud = Clip("l", ClipType.VIDEO, av, d, 2 * d, 0L, d)
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(muted, loud))), "muted_then_av")
+    }
+
+    @Test
+    fun exportsAudioVideoThenSilentVideo() {
+        val av = copyAsset("clip_audio.mp4"); val d = durationMs(av)
+        val silent = copyAsset("clipA.mp4"); val ds = durationMs(silent)
+        val withAudio = Clip("a", ClipType.VIDEO, av, 0L, d, 0L, d)
+        val noAudio = Clip("b", ClipType.VIDEO, silent, d, d + ds, 0L, ds)
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(withAudio, noAudio))), "av_then_silent")
+    }
+
     @Test
     fun exportsWithVisualEffectShader() {
         val (a, b) = baseClips()
@@ -169,5 +200,86 @@ class ExportInstrumentedTest {
     @Test
     fun exportsAtTargetResolution1080() {
         runExport(twoClipProject(), "1080p", ExportSettings(resolution = Resolution.P1080))
+    }
+
+    // --- Per-feature export coverage (find crashes vs. silent no-ops) ---
+
+    @Test
+    fun exportsWithSpeedHalfAndDouble() {
+        val av = copyAsset("clip_audio.mp4"); val d = durationMs(av)
+        val slow = Clip("s", ClipType.VIDEO, av, 0L, 2 * d, 0L, d, speed = 0.5f)
+        val fast = Clip("f", ClipType.VIDEO, av, 2 * d, 2 * d + d / 2, 0L, d, speed = 2f)
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(slow, fast))), "speed")
+    }
+
+    @Test
+    fun exportsWithSpeedRamp() {
+        val av = copyAsset("clip_audio.mp4"); val d = durationMs(av)
+        val ramp = Clip("r", ClipType.VIDEO, av, 0L, d, 0L, d, speedRamp = SpeedRamp.SLOW_MIDDLE)
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(ramp))), "speedramp")
+    }
+
+    @Test
+    fun exportsWithPictureInPicture() {
+        val (a, b) = baseClips()
+        val pip = Clip("p", ClipType.VIDEO, copyAsset("clip_audio.mp4"), 0L, 1_500L, 0L, 1_500L,
+            transform = Transform(0.4f, -0.4f, 0.4f))
+        runExport(
+            projectOf(Track("v", TrackType.VIDEO, listOf(a, b)), Track("o", TrackType.OVERLAY, listOf(pip))),
+            "pip",
+        )
+    }
+
+    @Test
+    fun exportsWithMusicLane() {
+        val (a, b) = baseClips()
+        val music = Clip("mus", ClipType.AUDIO, copyAsset("clip_audio.mp4"), 0L, 2_000L, 0L, 2_000L)
+        runExport(
+            projectOf(Track("v", TrackType.VIDEO, listOf(a, b)), Track("aud", TrackType.AUDIO, listOf(music))),
+            "music",
+        )
+    }
+
+    @Test
+    fun exportsRotatedClip() {
+        val (a, b) = baseClips()
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(a.copy(rotationDegrees = 90), b))), "rotate")
+    }
+
+    @Test
+    fun exportsCroppedClip() {
+        val (a, b) = baseClips()
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(a.copy(crop = CropRect(0.1f, 0.1f, 0.9f, 0.9f)), b))), "crop")
+    }
+
+    @Test
+    fun exportsWithColorAdjustments() {
+        val (a, b) = baseClips()
+        val adj = a.copy(adjustments = ColorAdjustments(brightness = 0.2f, contrast = 0.1f, saturation = 0.3f, warmth = 0.2f))
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(adj, b))), "adjust")
+    }
+
+    @Test
+    fun exportsReversedClip() {
+        val (a, b) = baseClips()
+        runExport(projectOf(Track("v", TrackType.VIDEO, listOf(a.copy(isReversed = true), b))), "reverse")
+    }
+
+    @Test
+    fun exportsEverythingCombined() {
+        val av = copyAsset("clip_audio.mp4"); val d = durationMs(av)
+        val image = Clip("img", ClipType.IMAGE, copyAsset("still.png"), 0L, 1_000L, 0L, 0L,
+            transitionToNext = Transition(TransitionType.FADE, 300L))
+        val video = Clip("v2", ClipType.VIDEO, av, 1_000L, 1_000L + d, 0L, d,
+            effects = listOf(VisualEffect(VisualEffectType.VHS, 0.7f)),
+            adjustments = ColorAdjustments(brightness = 0.1f))
+        val music = Clip("m", ClipType.AUDIO, av, 0L, 2_000L, 0L, 2_000L)
+        runExport(
+            projectOf(
+                Track("v", TrackType.VIDEO, listOf(image, video)),
+                Track("a", TrackType.AUDIO, listOf(music)),
+            ),
+            "combined",
+        )
     }
 }
