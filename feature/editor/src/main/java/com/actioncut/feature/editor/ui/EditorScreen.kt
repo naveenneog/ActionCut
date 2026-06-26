@@ -1,6 +1,7 @@
 package com.actioncut.feature.editor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ZoomIn
@@ -27,8 +30,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +53,7 @@ fun EditorScreen(
     viewModel: EditorViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showRename by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val audioPicker = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -101,6 +107,7 @@ fun EditorScreen(
             onRedo = viewModel::redo,
             onBack = onBack,
             onExport = onExport,
+            onTitleClick = { showRename = true },
         )
 
         PreviewPlayer(
@@ -209,6 +216,14 @@ fun EditorScreen(
             }
         }
     }
+
+    if (showRename) {
+        RenameDialog(
+            currentName = uiState.projectName,
+            onDismiss = { showRename = false },
+            onConfirm = viewModel::renameProject,
+        )
+    }
 }
 
 @Composable
@@ -220,6 +235,7 @@ private fun EditorTopBar(
     onRedo: () -> Unit,
     onBack: () -> Unit,
     onExport: () -> Unit,
+    onTitleClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -230,13 +246,30 @@ private fun EditorTopBar(
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
-        Text(
-            text = title.ifBlank { "Editor" },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.weight(1f),
-        )
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onTitleClick() }
+                .padding(vertical = 6.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = title.ifBlank { "Untitled" },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Icon(
+                Icons.Filled.Edit,
+                contentDescription = "Rename project",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
+        }
         IconButton(onClick = onUndo, enabled = canUndo) {
             Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
         }
@@ -245,6 +278,37 @@ private fun EditorTopBar(
         }
         PrimaryButton(text = "Export", onClick = onExport, leadingIcon = Icons.Filled.Add)
     }
+}
+
+@Composable
+private fun RenameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var draft by androidx.compose.runtime.remember(currentName) {
+        androidx.compose.runtime.mutableStateOf(currentName)
+    }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename project") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                singleLine = true,
+                label = { Text("Project name") },
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = { onConfirm(draft); onDismiss() }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable

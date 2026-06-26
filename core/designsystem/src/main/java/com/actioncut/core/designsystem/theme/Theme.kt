@@ -18,13 +18,13 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColors = darkColorScheme(
-    primary = Violet,
+    primary = Red,
     onPrimary = Color.White,
-    primaryContainer = VioletDim,
+    primaryContainer = RedDeep,
     onPrimaryContainer = Ink100,
-    secondary = Mint,
+    secondary = Gold,
     onSecondary = Ink900,
-    tertiary = Pink,
+    tertiary = Coral,
     onTertiary = Ink900,
     background = Ink900,
     onBackground = Ink100,
@@ -39,13 +39,13 @@ private val DarkColors = darkColorScheme(
 )
 
 private val LightColors = lightColorScheme(
-    primary = Violet,
+    primary = Red,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE7E1FF),
-    onPrimaryContainer = Color(0xFF1A0B47),
-    secondary = Color(0xFF009E86),
+    primaryContainer = Color(0xFFFFDDE1),
+    onPrimaryContainer = Color(0xFF470A14),
+    secondary = Color(0xFFB26A00),
     onSecondary = Color.White,
-    tertiary = Pink,
+    tertiary = Coral,
     onTertiary = Color.White,
     background = Snow,
     onBackground = Coal,
@@ -53,7 +53,7 @@ private val LightColors = lightColorScheme(
     onSurface = Coal,
     surfaceVariant = Mist,
     onSurfaceVariant = Slate,
-    outline = Color(0xFFC4C4CE),
+    outline = Color(0xFFD8C7C9),
     outlineVariant = Mist,
     error = Danger,
     onError = Color.White,

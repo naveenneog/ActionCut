@@ -21,11 +21,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.PermMedia
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -108,6 +110,8 @@ fun MediaPickerScreen(
                     count = uiState.selected.size,
                     totalDurationMs = uiState.selected.sumOf { it.durationMs },
                     isCreating = uiState.isCreating,
+                    name = uiState.projectName,
+                    onNameChange = viewModel::setProjectName,
                     onCreate = { viewModel.createProject(onCreated = onProjectCreated) },
                 )
             }
@@ -277,32 +281,45 @@ private fun SelectionBar(
     count: Int,
     totalDurationMs: Long,
     isCreating: Boolean,
+    name: String,
+    onNameChange: (String) -> Unit,
     onCreate: () -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "$count selected",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                if (totalDurationMs > 0) {
-                    Text(
-                        TimeFormatter.short(totalDurationMs),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            PrimaryButton(
-                text = if (isCreating) "Creating…" else "Create",
-                onClick = onCreate,
-                enabled = !isCreating,
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                singleLine = true,
+                label = { Text("Project name") },
+                placeholder = { Text("Name your project") },
+                leadingIcon = { Icon(Icons.Filled.DriveFileRenameOutline, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth(),
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "$count selected",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (totalDurationMs > 0) {
+                        Text(
+                            TimeFormatter.short(totalDurationMs),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                PrimaryButton(
+                    text = if (isCreating) "Creating…" else "Create",
+                    onClick = onCreate,
+                    enabled = !isCreating,
+                )
+            }
         }
     }
 }

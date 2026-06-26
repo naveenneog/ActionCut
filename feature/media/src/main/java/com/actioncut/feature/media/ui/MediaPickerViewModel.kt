@@ -30,6 +30,7 @@ class MediaPickerViewModel @Inject constructor(
     private val filter = MutableStateFlow(MediaFilter.ALL)
     private val selected = MutableStateFlow<List<MediaItem>>(emptyList())
     private val isCreating = MutableStateFlow(false)
+    private val projectName = MutableStateFlow(defaultProjectName())
 
     private val media: StateFlow<List<MediaItem>> =
         combine(permissionGranted, filter) { granted, f -> granted to f }
@@ -53,6 +54,8 @@ class MediaPickerViewModel @Inject constructor(
             selected = selectedItems,
             isCreating = creating,
         )
+    }.combine(projectName) { state, name ->
+        state.copy(projectName = name)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MediaPickerUiState())
 
     fun onPermissionResult(granted: Boolean) {
@@ -75,13 +78,23 @@ class MediaPickerViewModel @Inject constructor(
         selected.value = emptyList()
     }
 
+    /** Updates the name the user is giving the new project. */
+    fun setProjectName(name: String) {
+        projectName.value = name
+    }
+
+    private fun defaultProjectName(): String {
+        val fmt = java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault())
+        return "Video ${fmt.format(java.util.Date())}"
+    }
+
     fun createProject(
-        name: String = "Untitled",
         aspectRatio: AspectRatio = AspectRatio.DEFAULT,
         onCreated: (projectId: String) -> Unit,
     ) {
         if (selected.value.isEmpty() || isCreating.value) return
         isCreating.value = true
+        val name = projectName.value.ifBlank { defaultProjectName() }
         viewModelScope.launch {
             val project = createProjectFromMedia(name, aspectRatio, selected.value)
             isCreating.value = false

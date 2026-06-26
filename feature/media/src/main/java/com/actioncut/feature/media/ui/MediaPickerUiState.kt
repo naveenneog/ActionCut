@@ -11,6 +11,7 @@ data class MediaPickerUiState(
     val media: List<MediaItem> = emptyList(),
     val selected: List<MediaItem> = emptyList(),
     val isCreating: Boolean = false,
+    val projectName: String = "",
 ) {
     val canCreate: Boolean get() = selected.isNotEmpty() && !isCreating
     val isEmpty: Boolean get() = permissionGranted && !isLoading && media.isEmpty()

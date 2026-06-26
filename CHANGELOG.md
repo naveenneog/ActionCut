@@ -13,6 +13,20 @@ failures) so work is traceable and we avoid repeating problems.
 
 ## [Unreleased]
 
+### User-named projects + a jazzy red rebrand (goodbye purple)
+
+**Project names are now yours.** The media picker has a **Project name** field (pre-filled
+with a friendly date default like "Video Jun 26", fully editable) — no more everything called
+"Untitled". In the editor, tap the title (it shows a ✏ pencil) to **rename** any project; the
+new name is persisted on the usual debounced save.
+
+**New theme — vibrant red, zero purple.** Replaced the electric-violet/mint palette with a
+jazzy **red + warm gold** scheme: a red→coral brand gradient on the home title, the
+"New Project" FAB and the project-card play badges; red primary across chips/buttons/selection;
+warm-tinted dark surfaces; and re-tinted timeline lanes (rose-red video, teal audio, amber
+text, rust overlay). The launcher icon's play mark is now red→gold on a warm-dark background.
+Verified on the emulator.
+
 ### Reverse now actually reverses (it was a silent no-op)
 
 The **Reverse** tool did nothing on export — `isReversed` was only handled by the long-dead

@@ -112,6 +112,15 @@ class EditorViewModel @Inject constructor(
 
     fun selectClip(clipId: String?) = _uiState.update { it.copy(selectedClipId = clipId) }
 
+    /** Renames the project (persisted on the usual debounced save). */
+    fun renameProject(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        _uiState.update { it.copy(projectName = trimmed) }
+        loadedProject = loadedProject?.copy(name = trimmed)
+        scheduleSave()
+    }
+
     /** Loads a normalized amplitude envelope for an audio clip's waveform. */
     suspend fun loadWaveform(uri: String): FloatArray = waveformExtractor.amplitudes(uri)
 
